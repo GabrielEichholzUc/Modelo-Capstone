@@ -18,8 +18,8 @@ class ModeloLaja:
         
         # Conjuntos (se definirán con los datos)
         self.S = None  # Simulaciones
-        self.M = list(range(1, 13))  # Meses
-        self.W = list(range(1, 49))  # Semanas hidrológicas
+        self.M = list(range(1, 61))  #  60 Meses 5 años
+        self.W = list(range(1, 241))  # 240 Semanas hidrológicas (5 años)
         self.D = [1, 2, 3]  # Demandas (1:Primeros, 2:Segundos, 3:Saltos del Laja)
         self.U = [1, 2]  # Usos (1:Riego, 2:Generación)
         self.I = list(range(1, 17))  # Centrales (1-16)
@@ -454,15 +454,10 @@ class ModeloLaja:
             self.deficit[d, j, w] * self.phi
             for d in self.D for j in self.J for w in self.W
         )
-        
-        premiar_ahorro =  gp.quicksum(
-            self.ve[u,48] * 10000000000
-            for u in self.U
-        )
 
         # Función objetivo: Maximizar generación - penalidades
         self.model.setObjective(
-            generacion_total - penalidad_incumplimiento - penalidad_deficit + premiar_ahorro,
+            generacion_total - penalidad_incumplimiento - penalidad_deficit,
             GRB.MAXIMIZE
         )
         
@@ -616,12 +611,12 @@ def ejemplo_uso():
         'FC': {k: 0.5 for k in range(1, 79)},  # Filtraciones
         'VC': {k: k * 25 for k in range(1, 79)},  # Volúmenes por cota
         'VUC': {(u, k): k * 10 for u in [1, 2] for k in range(1, 79)},  # Vol uso
-        'QA': {(a, w): 50 for a in range(1, 6) for w in range(1, 49)},  # Afluentes
-        'QD': {(d, j, w): 10 for d in [1, 2, 3] for j in [1, 2, 3] for w in range(1, 49)},  # Demandas
+        'QA': {(a, w): 50 for a in range(1, 6) for w in range(1, 241)},  # Afluentes
+        'QD': {(d, j, w): 10 for d in [1, 2, 3] for j in [1, 2, 3] for w in range(1, 241)},  # Demandas
         'gamma': {i: 100 for i in range(1, 17)},  # Caudal máximo
         'rho': {i: 0.5 if i not in [4, 12, 14] else 0 for i in range(1, 17)},  # Rendimiento
         'pi': {i: 50 for i in range(1, 17)},  # Potencia máxima
-        'FS': {w: 604800 for w in range(1, 49)},  # Segundos por semana
+        'FS': {w: 604800 for w in range(1, 241)},  # Segundos por semana
         'psi': 1000,  # Costo incumplimiento
         'phi': 100,   # Costo déficit
     }

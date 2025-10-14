@@ -35,35 +35,31 @@ def grafico_generacion_anual():
     }
     
     df_generadoras['Nombre'] = df_generadoras['Central'].map(nombres_centrales)
+    # Asegurar que todos los nombres sean string (si NaN, poner 'Central X')
+    df_generadoras['Nombre'] = df_generadoras.apply(
+        lambda row: row['Nombre'] if isinstance(row['Nombre'], str) and row['Nombre'] else f"Central {int(row['Central'])}", axis=1)
     
-    # Crear gráfico
+    # Crear gráfico de energía total 5 años y promedio anual
     fig, ax = plt.subplots(figsize=(14, 8))
-    
     colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(df_generadoras)))
     bars = ax.barh(df_generadoras['Nombre'], df_generadoras['Energia_GWh'], color=colors)
-    
-    # Agregar valores en las barras
     for i, (bar, valor) in enumerate(zip(bars, df_generadoras['Energia_GWh'])):
         ax.text(valor + 200, bar.get_y() + bar.get_height()/2, 
-                f'{valor:,.0f} GWh', 
+                f'{valor:,.0f} GWh (5 años)\n{valor/5:,.0f} GWh/año', 
                 va='center', fontweight='bold', fontsize=11)
-    
-    ax.set_xlabel('Energía Generada (GWh)', fontsize=13, fontweight='bold')
-    ax.set_title('Generación Anual por Central Hidroeléctrica\nCuenca del Laja', 
-                 fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Energía Generada (GWh, 5 años)', fontsize=13, fontweight='bold')
+    ax.set_title('Generación Total y Promedio Anual por Central\nCuenca del Laja (5 años, 240 semanas)', 
+         fontsize=16, fontweight='bold', pad=20)
     ax.grid(axis='x', alpha=0.3)
-    
-    # Agregar línea de total
     total = df_generadoras['Energia_GWh'].sum()
-    ax.text(0.98, 0.02, f'Total: {total:,.0f} GWh', 
-            transform=ax.transAxes,
-            fontsize=12, fontweight='bold',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
-            ha='right')
-    
+    ax.text(0.98, 0.02, f'Total: {total:,.0f} GWh (5 años)\nPromedio anual: {total/5:,.0f} GWh/año', 
+        transform=ax.transAxes,
+        fontsize=12, fontweight='bold',
+        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
+        ha='right')
     plt.tight_layout()
     plt.savefig('resultados/grafico_generacion_anual.png', dpi=300, bbox_inches='tight')
-    print("✓ Gráfico de generación anual guardado: resultados/grafico_generacion_anual.png")
+    print("✓ Gráfico de generación total y anual guardado: resultados/grafico_generacion_anual.png")
     plt.close()
 
 
@@ -113,18 +109,24 @@ def grafico_riego_demandantes():
         ax.set_title(f'{nombres_demandantes[d]}', fontsize=13, fontweight='bold')
         ax.legend(loc='upper right', fontsize=10)
         ax.grid(True, alpha=0.3)
-        ax.set_xlim(0, 49)
+        ax.set_xlim(0, 241)
         
-        # Estadísticas
-        total_deficit = deficit_semanal.sum()
-        incumplimientos = len(semanas_deficit)
-        cumplimiento = (48 - incumplimientos) / 48 * 100
-        
-        stats_text = f'Cumplimiento: {cumplimiento:.1f}%\nDéficit total: {total_deficit:.1f} m³/s'
-        ax.text(0.02, 0.98, stats_text,
-                transform=ax.transAxes, fontsize=9,
-                verticalalignment='top',
-                bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
+    # Estadísticas globales y por año
+    total_deficit = deficit_semanal.sum()
+    incumplimientos = len(semanas_deficit)
+    cumplimiento = (240 - incumplimientos) / 240 * 100
+    stats_text = f'Cumplimiento global: {cumplimiento:.1f}%\nDéficit total: {total_deficit:.1f} m³/s'
+    # Por año
+    for year in range(1, 6):
+        semanas_ano = list(range((year-1)*48+1, year*48+1))
+        def_ano = deficit_semanal[deficit_semanal.index.isin(semanas_ano)].sum()
+        inc_ano = len([w for w in semanas_deficit if w in semanas_ano])
+        cump_ano = (48 - inc_ano) / 48 * 100
+        stats_text += f"\nAño {year}: {cump_ano:.1f}% ({48-inc_ano}/48)"
+    ax.text(0.02, 0.98, stats_text,
+        transform=ax.transAxes, fontsize=9,
+        verticalalignment='top',
+        bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
     
     axes[2].set_xlabel('Semana Hidrológica', fontsize=12, fontweight='bold')
     fig.suptitle('Cumplimiento de Compromisos de Riego\nCuenca del Laja', 
@@ -164,11 +166,11 @@ def grafico_volumen_lago():
     
     ax.set_xlabel('Semana Hidrológica', fontsize=13, fontweight='bold')
     ax.set_ylabel('Volumen (hm³)', fontsize=13, fontweight='bold')
-    ax.set_title('Evolución del Volumen del Embalse Laja\n48 Semanas Hidrológicas', 
+    ax.set_title('Evolución del Volumen del Embalse Laja\n240 Semanas Hidrológicas (5 años)', 
                  fontsize=16, fontweight='bold', pad=20)
     ax.legend(loc='best', fontsize=11)
     ax.grid(True, alpha=0.3)
-    ax.set_xlim(0, 49)
+    ax.set_xlim(0, 241)
     
     # Estadísticas
     vol_min = df['Volumen_hm3'].min()
@@ -210,7 +212,7 @@ def grafico_generacion_semanal():
     ax.set_title('Caudal Total de Generación por Semana\nTodas las Centrales', 
                  fontsize=16, fontweight='bold', pad=20)
     ax.grid(axis='y', alpha=0.3)
-    ax.set_xlim(0, 49)
+    ax.set_xlim(0, 241)
     
     # Promedio
     promedio = gen_semanal.mean()

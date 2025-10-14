@@ -35,7 +35,7 @@ if modelo.model.status == 2:
     # ve[u,w] para cada semana
     for u in [1, 2]:
         uso_nombre = "Riego" if u == 1 else "Generación"
-        for w in range(1, 49):
+        for w in range(1, 241):
             datos_ve.append({
                 'Uso': uso_nombre,
                 'Semana': w,

@@ -5,7 +5,7 @@ Script para cargar los parámetros desde el archivo Excel
 import pandas as pd
 import numpy as np
 
-def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"): 
+def cargar_parametros_excel(archivo_excel="Modelo Capstone/Parametros_Finales.xlsx"): 
     """
     Carga todos los parámetros desde el archivo Excel
     
@@ -99,14 +99,14 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     
     # Estructura: Primera fila son los headers (fechas), segunda fila índice 'a'
     # Filas 2-6 son los afluentes (ELTORO, ABANICO, ANTUCO, TUCAPEL, CANECOL)
-    # Columnas 1-48 son las semanas
+    # Columnas 1-240 son las semanas
     
     afluentes_nombres = ['ELTORO', 'ABANICO', 'ANTUCO', 'TUCAPEL', 'CANECOL']
     
     for idx_fila, nombre_afluente in enumerate(afluentes_nombres, start=2):
         a = idx_fila - 1  # a = 1 para ELTORO, 2 para ABANICO, etc.
-        for w in range(1, 49):  # 48 semanas
-            col_idx = w  # Las semanas están en columnas 1-48
+        for w in range(1, 241):  # 240 semanas
+            col_idx = w  # Las semanas están en columnas 1-240
             valor = df_qa.iloc[idx_fila, col_idx]
             parametros['QA'][(a, w)] = float(valor)
     
@@ -118,12 +118,12 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     df_qd = pd.read_excel(archivo_excel, sheet_name='QD_d,j,w')
     parametros['QD'] = {}
     
-    # Estructura: j | d | 1 | 2 | 3 | ... | 48
-    # Cada fila tiene un j y d, y las columnas 1-48 son las semanas
+    # Estructura: j | d | 1 | 2 | 3 | ... | 240
+    # Cada fila tiene un j y d, y las columnas 1-240 son las semanas
     for _, row in df_qd.iterrows():
         j = int(row['j'])
         d = int(row['d'])
-        for w in range(1, 49):  # 48 semanas
+        for w in range(1, 241):  # 240 semanas
             # Intentar tanto con string como con número
             if w in df_qd.columns:
                 parametros['QD'][(d, j, w)] = float(row[w])

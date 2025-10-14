@@ -59,10 +59,10 @@ if modelo.model.status == 2:
             'Volumen_hm3': modelo.ve_0[u].X
         })
     
-    # ve[u,w] para cada semana
+    # Extraer ve[u,w] para cada semana
     for u in [1, 2]:
         uso_nombre = "Riego" if u == 1 else "Generación"
-        for w in range(1, 49):
+        for w in range(1, 241):
             datos_ve.append({
                 'Uso': uso_nombre,
                 'Semana': w,
@@ -115,7 +115,7 @@ ax1.legend(fontsize=10, loc='best')
 
 # Estadísticas
 vol_inicial_riego = df_riego[df_riego['Semana']==0]['Volumen_hm3'].values[0]
-vol_final_riego = df_riego[df_riego['Semana']==48]['Volumen_hm3'].values[0]
+vol_final_riego = df_riego[df_riego['Semana']==240]['Volumen_hm3'].values[0]
 vol_min_riego = df_riego['Volumen_hm3'].min()
 vol_max_riego = df_riego['Volumen_hm3'].max()
 
@@ -140,7 +140,7 @@ ax2.legend(fontsize=10, loc='best')
 
 # Estadísticas
 vol_inicial_gen = df_gen[df_gen['Semana']==0]['Volumen_hm3'].values[0]
-vol_final_gen = df_gen[df_gen['Semana']==48]['Volumen_hm3'].values[0]
+vol_final_gen = df_gen[df_gen['Semana']==240]['Volumen_hm3'].values[0]
 vol_min_gen = df_gen['Volumen_hm3'].min()
 vol_max_gen = df_gen['Volumen_hm3'].max()
 
@@ -192,14 +192,14 @@ print("="*70)
 
 print("\n📊 RIEGO (u=1):")
 print(f"  Volumen inicial (ve[1,0]): {vol_inicial_riego:>10,.2f} hm³")
-print(f"  Volumen final (ve[1,48]):  {vol_final_riego:>10,.2f} hm³")
+print(f"  Volumen final (ve[1,240]):  {vol_final_riego:>10,.2f} hm³")
 print(f"  Variación:                 {vol_final_riego - vol_inicial_riego:>10,.2f} hm³ ({(vol_final_riego/vol_inicial_riego-1)*100:+.1f}%)")
 print(f"  Mínimo:                    {vol_min_riego:>10,.2f} hm³")
 print(f"  Máximo:                    {vol_max_riego:>10,.2f} hm³")
 
 print("\n⚡ GENERACIÓN (u=2):")
 print(f"  Volumen inicial (ve[2,0]): {vol_inicial_gen:>10,.2f} hm³")
-print(f"  Volumen final (ve[2,48]):  {vol_final_gen:>10,.2f} hm³")
+print(f"  Volumen final (ve[2,240]):  {vol_final_gen:>10,.2f} hm³")
 print(f"  Variación:                 {vol_final_gen - vol_inicial_gen:>10,.2f} hm³ ({(vol_final_gen/vol_inicial_gen-1)*100:+.1f}%)")
 print(f"  Mínimo:                    {vol_min_gen:>10,.2f} hm³")
 print(f"  Máximo:                    {vol_max_gen:>10,.2f} hm³")
