@@ -511,7 +511,7 @@ class ModeloLaja:
         
         if self.model.status == GRB.OPTIMAL:
             print("✓ Solución óptima encontrada")
-            print(f"Valor objetivo: {self.model.ObjVal:,.2f} MWh")
+            print(f"Valor objetivo: {self.model.ObjVal:,.2f} GWh")
             print(f"Gap de optimalidad: {self.model.MIPGap*100:.4f}%")
             print(f"Tiempo de resolución: {self.model.Runtime:.2f} segundos")
         elif self.model.status == GRB.TIME_LIMIT:
