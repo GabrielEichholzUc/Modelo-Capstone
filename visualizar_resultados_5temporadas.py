@@ -8,6 +8,7 @@ Genera gráficos de:
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import numpy as np
 import os
 
@@ -243,17 +244,33 @@ for j in J:
             label_d = 'Demanda' if t == 1 else ''
             label_p = f'Provisión T{t}' if True else ''
             
+            # Colorear fondo según alpha (solo para Primeros Regantes en canales afectados)
+            if j in [1, 2, 4] and d == 1:  # RieZaCo, RieTucapel y Abanico: solo Primeros Regantes
+                # Identificar bloques contiguos de alpha=0 y alpha=1
+                for i in range(len(semanas)):
+                    semana_actual = semanas[i]
+                    alpha_actual = alpha_vals[i]
+                    
+                    # Determinar límites del span
+                    if i == len(semanas) - 1:
+                        semana_next = semana_actual + 1
+                    else:
+                        semana_next = semanas[i+1]
+                    
+                    # Colorear fondo: azul claro si alpha=0 (Tucapel), amarillo si alpha=1 (Abanico)
+                    if alpha_actual == 1:
+                        # alpha=1 → Abanico activo (amarillo claro)
+                        ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
+                                  color='#fff9c4', alpha=0.3, zorder=0)
+                    else:
+                        # alpha=0 → Tucapel activo (azul claro)
+                        ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
+                                  color='#b3e5fc', alpha=0.3, zorder=0)
+            
             ax.plot(semanas, demanda_vals, linewidth=1.5, color='red', 
                     label=label_d, linestyle='--', alpha=0.6)
             ax.plot(semanas, provision_vals, linewidth=2, color=colors_provision[t-1], 
                     label=label_p, alpha=0.8)
-            
-            # Marcar semanas con alpha=1 (solo relevante para canales afectados)
-            if j in [2, 4]:  # RieTucapel y Abanico se ven afectados por alpha
-                alpha_semanas = semanas[alpha_vals == 1]
-                if len(alpha_semanas) > 0:
-                    for s in alpha_semanas:
-                        ax.axvline(x=s, color='orange', linestyle=':', alpha=0.6, linewidth=1)
         
         # Líneas verticales para separar temporadas
         for t in range(1, 5):
@@ -262,7 +279,23 @@ for j in J:
         
         ax.set_ylabel('Caudal (m³/s)', fontsize=10, fontweight='bold')
         ax.set_title(f'{nombres_demandantes[d]}', fontsize=11, fontweight='bold')
-        ax.legend(fontsize=9, loc='best', ncol=3)
+        
+        # Agregar leyenda con explicación de colores de fondo (solo para Primeros Regantes)
+        if j in [1, 2, 4] and d == 1:
+            # Crear parches para la leyenda de alpha
+            legend_elements = [
+                Patch(facecolor='#b3e5fc', alpha=0.3, label='α=0 (Canal Tucapel activo)'),
+                Patch(facecolor='#fff9c4', alpha=0.3, label='α=1 (Canal Abanico activo)')
+            ]
+            
+            # Obtener handles de la leyenda existente
+            handles, labels = ax.get_legend_handles_labels()
+            
+            # Combinar ambas leyendas
+            ax.legend(handles + legend_elements, labels + ['α=0 (Tucapel)', 'α=1 (Abanico)'],
+                     fontsize=9, loc='best', ncol=3)
+        else:
+            ax.legend(fontsize=9, loc='best', ncol=3)
         ax.grid(True, alpha=0.3)
     
     # Añadir etiquetas de temporadas en el eje x
@@ -311,21 +344,52 @@ for j in J:
             provision = data_t['Provisto_m3s'].values
             alpha_vals = data_t['Alpha'].values
             
+            # Colorear fondo según alpha (solo para Primeros Regantes en canales afectados)
+            if j in [1, 2, 4] and d == 1:  # Solo Primeros Regantes
+                for i in range(len(semanas)):
+                    semana_actual = semanas[i]
+                    alpha_actual = alpha_vals[i]
+                    
+                    # Determinar límites del span
+                    if i == len(semanas) - 1:
+                        semana_next = semana_actual + 1
+                    else:
+                        semana_next = semanas[i+1]
+                    
+                    # Colorear fondo: azul claro si alpha=0 (Tucapel), amarillo si alpha=1 (Abanico)
+                    if alpha_actual == 1:
+                        # alpha=1 → Abanico activo (amarillo claro)
+                        ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
+                                  color='#fff9c4', alpha=0.3, zorder=0)
+                    else:
+                        # alpha=0 → Tucapel activo (azul claro)
+                        ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
+                                  color='#b3e5fc', alpha=0.3, zorder=0)
+            
             ax.plot(semanas, demanda, linewidth=2, color='red', 
                     label='Demanda', linestyle='--', alpha=0.7)
             ax.plot(semanas, provision, linewidth=2, color='green', 
                     label='Provisión', marker='o', markersize=2, alpha=0.8)
             
-            # Marcar semanas con alpha=1
-            alpha_semanas = semanas[alpha_vals == 1]
-            if len(alpha_semanas) > 0:
-                for s in alpha_semanas:
-                    ax.axvline(x=s, color='orange', linestyle=':', alpha=0.6, linewidth=1.5)
-            
             ax.set_xlabel('Semana', fontsize=10, fontweight='bold')
             ax.set_ylabel('Caudal (m³/s)', fontsize=10, fontweight='bold')
             ax.set_title(f'Temporada {t}', fontsize=11, fontweight='bold')
-            ax.legend(fontsize=8, loc='best')
+            
+            # Agregar leyenda con explicación de colores de fondo (solo para Primeros Regantes)
+            if j in [1, 2, 4] and d == 1:
+                # Crear parches para la leyenda de alpha
+                legend_elements = [
+                    Patch(facecolor='#b3e5fc', alpha=0.3, label='α=0 (Tucapel)'),
+                    Patch(facecolor='#fff9c4', alpha=0.3, label='α=1 (Abanico)')
+                ]
+                # Obtener handles de la leyenda existente
+                handles, labels = ax.get_legend_handles_labels()
+                # Combinar ambas leyendas
+                ax.legend(handles + legend_elements, labels + ['α=0', 'α=1'],
+                         fontsize=8, loc='best')
+            else:
+                ax.legend(fontsize=8, loc='best')
+            
             ax.grid(True, alpha=0.3)
             ax.set_xlim(0, 49)
         
