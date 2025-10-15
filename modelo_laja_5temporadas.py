@@ -26,25 +26,26 @@ class ModeloLaja:
         self.U = [1, 2]  # Usos (1:Riego, 2:Generación)
         self.I = list(range(1, 17))  # Centrales (1-16)
         self.J = [1, 2, 3, 4]  # Puntos de retiro (1:RieZaCo, 2:RieTucapel, 3:RieSaltos, 4:Abanico)
-        self.A = list(range(1, 6))  # Afluentes (1:ElToro, 2:Abanico, 3:Antuco, 4:Tucapel, 5:Canecol)
+        self.A = list(range(1, 7))  # Afluentes (1:ElToro, 2:Abanico, 3:Antuco, 4:Tucapel, 5:Canecol, 6:Laja_I)
         self.K = None  # Cotas del lago (se definirá con datos)
         
         # Parámetros
         self.V_30Nov_1 = None  # Volumen al 30 Nov previo a temporada 1
         self.V_0 = None  # Volumen al inicio de la planificación
         self.V_MAX = None
-        self.FC = {}  # FC[k]: Filtraciones en cota k
-        self.VC = {}  # VC[k]: Volumen en cota k
-        self.VUC = {}  # VUC[u,k]: Volumen de uso u en cota k
-        self.QA = {}  # QA[a,w,t]: Caudal afluente a en semana w de temporada t
-        self.QD = {}  # QD[d,j,w]: Caudal demandado por d en canal j en semana w
-        self.gamma = {}  # gamma[i]: Caudal máximo central i
-        self.rho = {}  # rho[i]: Rendimiento central i
-        self.pi = {}  # pi[i]: Potencia máxima central i
-        self.FS = {}  # FS[w]: Factor segundos en semana w
-        self.psi = None  # Costo incumplir convenio
-        self.phi = None  # Costo déficit de riego
-        self.M_bigM = 10000  # Parámetro Big-M
+        self.FC = {}  # FC[k]: Filtraciones en cota k [m³/s]
+        self.VC = {}  # VC[k]: Volumen en cota k [hm³]
+        self.VUC = {}  # VUC[u,k]: Volumen de uso u en cota k [hm³]
+        self.QA = {}  # QA[a,w,t]: Caudal afluente a en semana w de temporada t [m³/s]
+        self.QD = {}  # QD[d,j,w]: Caudal demandado por d en canal j en semana w [m³/s]
+        self.gamma = {}  # gamma[i]: Caudal máximo central i [m³/s]
+        self.rho = {}  # rho[i]: Rendimiento central i [MW/(m³/s)] - Potencia específica
+        self.pi = {}  # pi[i]: Potencia máxima central i [MW]
+        self.FS = {}  # FS[w]: Factor segundos en semana w [segundos]
+        self.psi = None  # Costo incumplir convenio [GWh] (penalización en función objetivo)
+        self.phi = None  # Costo bajar umbral de V_min [GWh] (penalización en función objetivo)
+        self.V_min = None  # Volumen mínimo del lago (umbral) [hm³]
+        self.M_bigM = None  # Parámetro Big-M (se carga desde Excel)
         
         # Variables
         self.V_30Nov = {}  # V_30Nov[t]: Volumen al 30 Nov previo a temp t
@@ -63,6 +64,8 @@ class ModeloLaja:
         self.superavit = {}  # superavit[d,j,w,t]
         self.eta = {}  # eta[d,j,w,t]: Binaria incumplimiento
         self.alpha = {}  # alpha[w,t]: Binaria Abanico(1) vs Tucapel(0)
+        self.beta = {}  # beta[w,t]: Binaria umbral 1400 hm³
+        self.GEN = {}  # GEN[i,t]: Energía generada [GWh] por central i en temporada t
         
     def cargar_parametros(self, dict_parametros):
         """Carga los parámetros del modelo"""
@@ -80,6 +83,8 @@ class ModeloLaja:
         self.FS = dict_parametros.get('FS')
         self.psi = dict_parametros.get('psi')
         self.phi = dict_parametros.get('phi')
+        self.V_min = dict_parametros.get('V_min', 1400)  # Default 1400 si no está en Excel
+        self.M_bigM = dict_parametros.get('M', 10000)  # Default 10000 si no está en Excel
         self.K = list(self.VC.keys())
         print("✓ Parámetros cargados correctamente")
         
@@ -114,6 +119,10 @@ class ModeloLaja:
         # Variables binarias
         self.eta = self.model.addVars(self.D, self.J, self.W, self.T, vtype=GRB.BINARY, name="eta")
         self.alpha = self.model.addVars(self.W, self.T, vtype=GRB.BINARY, name="alpha")
+        self.beta = self.model.addVars(self.W, self.T, vtype=GRB.BINARY, name="beta")
+        
+        # Variable de energía generada por central y temporada [GWh]
+        self.GEN = self.model.addVars(self.I, self.T, lb=0, name="GEN")
         
         print("✓ Variables creadas correctamente")
         
@@ -354,11 +363,13 @@ class ModeloLaja:
                         self.deficit[d, 3, w, t] <= self.M_bigM * self.eta[d, 3, w, t],
                         name=f"bigM_riesaltos_{d}_{w}_{t}")
         
-        # ========== 17. LAJA 1 (Central 13) - Sin QA_6 ==========
+        # ========== 17. LAJA 1 (Central 13) ==========
         for t in self.T:
             for w in self.W:
+                # Si existe afluente 6, incluirlo; si no, solo usar qv[11]
+                afluente_6 = self.QA.get((6, w, t), 0)  # 0 si no existe
                 self.model.addConstr(
-                    self.qg[13, w, t] + self.qv[13, w, t] == self.qv[11, w, t],
+                    self.qg[13, w, t] + self.qv[13, w, t] == self.qv[11, w, t] + afluente_6,
                     name=f"laja1_{w}_{t}")
         
         # ========== 18. EL DIUTO (Central 15) ==========
@@ -406,16 +417,37 @@ class ModeloLaja:
                         self.qg[i, w, t] <= self.gamma[i],
                         name=f"cap_max_{i}_{w}_{t}")
         
+        # ========== 22. VOLUMEN MÍNIMO DEL LAGO ==========
+        for t in self.T:
+            for w in self.W:
+                self.model.addConstr(
+                    self.V[w, t] >= self.V_min - self.M_bigM * self.beta[w, t],
+                    name=f"vol_min_{w}_{t}")
+        
+        # ========== 23. DEFINICIÓN DE ENERGÍA GENERADA POR CENTRAL ==========
+        # GEN[i,t] = Σ_w (qg[i,w,t] × ρ[i] × FS[w] / (3600 × 1000)) [GWh]
+        # Unidades: [m³/s] × [MW/(m³/s)] × [s] / 3,600,000 = [MW·s] / 3,600,000 = [GWh]
+        # Nota: ρ está en MW/(m³/s), por lo que qg×ρ×FS da MW·s
+        #       Dividir por 3600 convierte a MWh, y por 1000 adicional convierte a GWh
+        for t in self.T:
+            for i in self.I:
+                self.model.addConstr(
+                    self.GEN[i, t] == gp.quicksum(
+                        self.qg[i, w, t] * self.rho[i] * self.FS[w] / (3600 * 1000)
+                        for w in self.W
+                    ),
+                    name=f"def_energia_{i}_{t}")
+        
         print("✓ Restricciones creadas correctamente")
         
     def crear_funcion_objetivo(self):
         """Define la función objetivo"""
         print("Creando función objetivo...")
         
-        # Generación total (energía en MWh)
+        # Generación total usando la variable GEN (energía en GWh)
         generacion_total = gp.quicksum(
-            self.qg[i, w, t] * self.rho[i] * self.FS[w]
-            for i in self.I for w in self.W for t in self.T
+            self.GEN[i, t]
+            for i in self.I for t in self.T
         )
         
         # Penalidad por incumplimiento de convenio
@@ -423,9 +455,15 @@ class ModeloLaja:
             self.eta[d, j, w, t] * self.psi
             for d in self.D for j in self.J for w in self.W for t in self.T
         )
+        
+        # Penalidad por bajar del umbral de 1400 hm³
+        penalidad_umbral = gp.quicksum(
+            self.beta[w, t] * self.phi
+            for w in self.W for t in self.T
+        )
 
         self.model.setObjective(
-            generacion_total - penalidad_incumplimiento,
+            generacion_total - penalidad_incumplimiento - penalidad_umbral,
             GRB.MAXIMIZE
         )
         
@@ -547,12 +585,20 @@ class ModeloLaja:
         ])
         df_alpha.to_csv(f"{carpeta_salida}/decision_alpha.csv", index=False)
         
-        # 6. Energía total por central y temporada
+        # 6. Variable beta (umbral 1400 hm³)
+        df_beta = pd.DataFrame([
+            {'Semana': w, 'Temporada': t, 'Beta': self.beta[w, t].X}
+            for w in self.W for t in self.T
+        ])
+        df_beta.to_csv(f"{carpeta_salida}/decision_beta.csv", index=False)
+        
+        # 7. Energía generada por central y temporada (usando variable GEN)
         df_energia = pd.DataFrame([
             {
                 'Central': i,
                 'Temporada': t,
-                'Energia_Total_MWh': sum(self.qg[i, w, t].X * self.rho[i] * self.FS[w] for w in self.W)
+                'Energia_GWh': self.GEN[i, t].X,
+                'Energia_MWh': self.GEN[i, t].X * 1000
             }
             for i in self.I for t in self.T
         ])

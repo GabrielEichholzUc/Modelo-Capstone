@@ -28,15 +28,27 @@ print("Cargando resultados...")
 volumenes = pd.read_csv('resultados/volumenes_lago.csv')
 riego = pd.read_csv('resultados/riego.csv')
 alpha = pd.read_csv('resultados/decision_alpha.csv')
+generacion = pd.read_csv('resultados/generacion.csv')
+energia_total = pd.read_csv('resultados/energia_total.csv')
 
 # Intentar cargar volúmenes por uso
 try:
     volumenes_uso = pd.read_csv('resultados/volumenes_por_uso.csv')
-    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(volumenes_uso)} volúmenes por uso")
+    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(volumenes_uso)} volúmenes por uso, {len(generacion)} generación, {len(energia_total)} GEN[i,t]")
 except FileNotFoundError:
     volumenes_uso = None
-    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego")
+    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(generacion)} generación, {len(energia_total)} GEN[i,t]")
     print("  ⚠ Archivo volumenes_por_uso.csv no encontrado (ejecuta optimización primero)")
+
+# Cargar parámetros para obtener V_min
+try:
+    from cargar_datos_5temporadas import cargar_parametros_excel
+    parametros = cargar_parametros_excel()
+    V_min = parametros.get('V_min', 1400)
+    print(f"✓ V_min cargado: {V_min} hm³")
+except:
+    V_min = 1400
+    print(f"⚠ No se pudo cargar V_min, usando valor por defecto: {V_min} hm³")
 
 # Parámetros del modelo
 T = list(range(1, 6))  # 5 temporadas
@@ -71,6 +83,10 @@ for t in T:
     ax.plot(semanas, data_t['Volumen_hm3'], 
             linewidth=2, color=colors[t-1], label=f'Temporada {t}', marker='', alpha=0.9)
 
+# Línea horizontal del volumen mínimo
+ax.axhline(y=V_min, color='red', linestyle='-.', linewidth=2, alpha=0.7, 
+           label=f'V_min = {V_min:.0f} hm³')
+
 # Líneas verticales para separar temporadas
 for t in range(1, 5):
     semana_fin = t * 48
@@ -100,37 +116,11 @@ print(f"  ✓ Guardado: {output_dir}/1_volumen_lago_todas_temporadas.png")
 plt.close()
 
 # ============================================================
-# GRÁFICO 2: EVOLUCIÓN V[w,t] - TEMPORADAS SEPARADAS
+# GRÁFICO 2: EVOLUCIÓN V[w,t] - TEMPORADAS SEPARADAS (OMITIDO)
 # ============================================================
 
-print("📊 Generando gráfico 2: Volumen lago (temporadas separadas)...")
-
-fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-axes = axes.flatten()
-
-for t in T:
-    ax = axes[t - 1]
-    data_t = volumenes[volumenes['Temporada'] == t]
-    
-    ax.plot(data_t['Semana'], data_t['Volumen_hm3'], 
-            linewidth=2, color=f'C{t-1}', marker='o', markersize=3,
-            label=f'Temporada {t}')
-    
-    ax.set_xlabel('Semana', fontsize=10, fontweight='bold')
-    ax.set_ylabel('Volumen (hm³)', fontsize=10, fontweight='bold')
-    ax.set_title(f'Temporada {t}', fontsize=12, fontweight='bold')
-    ax.grid(True, alpha=0.3)
-    ax.set_xlim(0, 49)
-
-# Ocultar el último subplot (6to)
-axes[5].axis('off')
-
-plt.suptitle('Evolución del Volumen del Lago - Por Temporada', 
-             fontsize=14, fontweight='bold', y=0.995)
-plt.tight_layout()
-plt.savefig(f'{output_dir}/2_volumen_lago_por_temporada.png', dpi=300, bbox_inches='tight')
-print(f"  ✓ Guardado: {output_dir}/2_volumen_lago_por_temporada.png")
-plt.close()
+# print("📊 Generando gráfico 2: Volumen lago (temporadas separadas)...")
+# Gráfico 2 omitido por solicitud del usuario
 
 # ============================================================
 # GRÁFICO 3: EVOLUCIÓN ve[u,w,t] - TODAS LAS TEMPORADAS JUNTAS
@@ -185,50 +175,7 @@ if volumenes_uso is not None:
 else:
     print("  ⚠ Saltando gráfico 3: no hay datos de volúmenes por uso")
 
-# ============================================================
-# GRÁFICO 4: EVOLUCIÓN ve[u,w,t] - TEMPORADAS SEPARADAS
-# ============================================================
-
-print("📊 Generando gráfico 4: Volúmenes por uso (temporadas separadas)...")
-
-if volumenes_uso is not None:
-    for u in U:
-        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-        axes = axes.flatten()
-        
-        data_u = volumenes_uso[volumenes_uso['Uso'] == u]
-        color = '#e74c3c' if u == 1 else '#3498db'
-        
-        for t in T:
-            ax = axes[t - 1]
-            data_t = data_u[data_u['Temporada'] == t]
-            
-            if len(data_t) == 0:
-                continue
-            
-            ax.plot(data_t['Semana'], data_t['Volumen_hm3'], 
-                    linewidth=2, color=color, marker='o', markersize=3,
-                    label=f'{nombres_usos[u]}')
-            
-            ax.set_xlabel('Semana', fontsize=10, fontweight='bold')
-            ax.set_ylabel('Volumen (hm³)', fontsize=10, fontweight='bold')
-            ax.set_title(f'Temporada {t}', fontsize=12, fontweight='bold')
-            ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=9)
-            ax.set_xlim(0, 49)
-        
-        # Ocultar el último subplot
-        axes[5].axis('off')
-        
-        plt.suptitle(f'Evolución Volumen {nombres_usos[u]} - Por Temporada', 
-                     fontsize=14, fontweight='bold', y=0.995)
-        plt.tight_layout()
-        plt.savefig(f'{output_dir}/4_volumen_{nombres_usos[u].lower()}_por_temporada.png', 
-                    dpi=300, bbox_inches='tight')
-        print(f"  ✓ Guardado: {output_dir}/4_volumen_{nombres_usos[u].lower()}_por_temporada.png")
-        plt.close()
-else:
-    print("  ⚠ Saltando gráfico 4: no hay datos de volúmenes por uso")
+# Gráfico 4 omitido por solicitud del usuario
 
 # ============================================================
 # GRÁFICO 5: DEMANDA VS PROVISIÓN - TODAS LAS TEMPORADAS
@@ -385,13 +332,91 @@ for j in J:
         # Ocultar último subplot
         axes[5].axis('off')
         
+        # Saltar los gráficos que el usuario no quiere generar
+        nombre_grafico = f'6_demanda_provision_{canal_nombre.lower()}_{nombres_demandantes[d].lower().replace(" ", "_")}_separadas.png'
+        if nombre_grafico in [
+            '6_demanda_provision_abanico_saltos_del_laja_separadas.png',
+            '6_demanda_provision_abanico_segundos_regantes_separadas.png',
+            '6_demanda_provision_riesaltos_primeros_regantes_separadas.png',
+            '6_demanda_provision_riesaltos_segundos_regantes_separadas.png',
+            '6_demanda_provision_rietucapel_saltos_del_laja_separadas.png',
+            '6_demanda_provision_riezaco_saltos_del_laja_separadas.png',
+            '6_demanda_provision_riezaco_segundos_regantes_separadas.png']:
+            plt.close()
+            continue
         plt.suptitle(f'Demanda vs Provisión - {canal_nombre} - {nombres_demandantes[d]}', 
                      fontsize=14, fontweight='bold', y=0.995)
         plt.tight_layout()
-        filename = f'6_demanda_provision_{canal_nombre.lower()}_{nombres_demandantes[d].lower().replace(" ", "_")}_separadas.png'
-        plt.savefig(f'{output_dir}/{filename}', dpi=300, bbox_inches='tight')
-        print(f"  ✓ Guardado: {output_dir}/{filename}")
+        plt.savefig(f'{output_dir}/{nombre_grafico}', dpi=300, bbox_inches='tight')
+        print(f"  ✓ Guardado: {output_dir}/{nombre_grafico}")
         plt.close()
+
+# ============================================================
+# GRÁFICO 7: GENERACIÓN POR CENTRAL Y TEMPORADA (BARRAS)
+# ============================================================
+
+print("\n7. Generando gráfico de generación por central...")
+
+# Cargar nombres de centrales desde Excel
+from cargar_datos_5temporadas import cargar_parametros_excel, cargar_nombres_centrales
+
+# Cargar nombres de centrales
+nombres_centrales = cargar_nombres_centrales()
+print(f"  Nombres de centrales cargados: {len(nombres_centrales)} centrales")
+
+# Cargar datos de rendimiento para filtrar centrales con rho > 0
+parametros = cargar_parametros_excel()
+rho = parametros['rho']  # Diccionario {i: rendimiento}
+
+# Filtrar centrales con rendimiento > 0
+centrales_con_rho = [i for i, r in rho.items() if r > 0]
+print(f"  Centrales con rendimiento > 0: {centrales_con_rho}")
+
+# Usar directamente las variables GEN_{i,t} del archivo energia_total.csv
+# Filtrar solo centrales con rendimiento > 0
+energia_filtrada = energia_total[energia_total['Central'].isin(centrales_con_rho)]
+
+# Preparar datos para gráfico de barras agrupadas
+centrales = sorted(energia_filtrada['Central'].unique())
+temporadas = sorted(energia_filtrada['Temporada'].unique())
+
+# Crear matriz de datos usando GWh
+data_matrix = np.zeros((len(centrales), len(temporadas)))
+for idx_c, central in enumerate(centrales):
+    for idx_t, temp in enumerate(temporadas):
+        valor = energia_filtrada[
+            (energia_filtrada['Central'] == central) & 
+            (energia_filtrada['Temporada'] == temp)
+        ]['Energia_GWh'].values
+        if len(valor) > 0:
+            data_matrix[idx_c, idx_t] = valor[0]
+
+# Crear gráfico de barras agrupadas
+fig, ax = plt.subplots(figsize=(16, 8))
+
+x = np.arange(len(centrales))  # Posiciones de las centrales
+width = 0.15  # Ancho de cada barra
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+
+for idx_t, temp in enumerate(temporadas):
+    offset = width * (idx_t - 2)  # Centrar las barras
+    ax.bar(x + offset, data_matrix[:, idx_t], width, 
+           label=f'Temporada {temp}', color=colors[idx_t], alpha=0.85)
+
+ax.set_xlabel('Central', fontsize=12, fontweight='bold')
+ax.set_ylabel('Energía Generada (GWh)', fontsize=12, fontweight='bold')
+ax.set_title('Energía Generada por Central y Temporada - Variables GEN$_{i,t}$\n(Solo centrales con rendimiento > 0)', 
+             fontsize=14, fontweight='bold')
+ax.set_xticks(x)
+ax.set_xticklabels([nombres_centrales[c] for c in centrales], rotation=45, ha='right')
+ax.legend(fontsize=10, loc='best')
+ax.grid(True, axis='y', alpha=0.3)
+
+plt.tight_layout()
+filename = '7_generacion_por_central_temporada.png'
+plt.savefig(f'{output_dir}/{filename}', dpi=300, bbox_inches='tight')
+print(f"  ✓ Guardado: {output_dir}/{filename}")
+plt.close()
 
 # ============================================================
 # RESUMEN
@@ -408,4 +433,5 @@ print("  3. Volúmenes por uso - Todas las temporadas juntas")
 print("  4. Volúmenes por uso - Por temporada (2 usos × 5 temporadas)")
 print("  5. Demanda vs Provisión - Por canal, todas las temporadas")
 print("  6. Demanda vs Provisión - Por canal, demandante y temporada")
+print("  7. Generación por central y temporada (barras agrupadas)")
 print("\n" + "="*70)

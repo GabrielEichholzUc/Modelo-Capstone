@@ -6,6 +6,33 @@ Versión para 5 temporadas
 import pandas as pd
 import numpy as np
 
+def cargar_nombres_centrales(archivo_excel="Parametros_Finales.xlsx"):
+    """
+    Carga los nombres de las centrales desde la hoja Índices
+    
+    Returns:
+        dict: Diccionario {i: nombre_central} para i=1..16
+    """
+    df_indices = pd.read_excel(archivo_excel, sheet_name='Índices')
+    
+    # Extraer columnas de Centrales (asumiendo que están en las dos primeras columnas)
+    centrales_df = df_indices[['Centrales', 'Unnamed: 1']].dropna()
+    
+    # Filtrar solo las filas donde la primera columna es numérica (índice de central)
+    centrales_df = centrales_df[centrales_df['Centrales'].apply(lambda x: isinstance(x, (int, float)))]
+    
+    # Limitar a las primeras 16 centrales
+    centrales_df = centrales_df.head(16)
+    
+    # Crear diccionario
+    nombres = {}
+    for _, row in centrales_df.iterrows():
+        idx = int(row['Centrales'])
+        nombre = str(row['Unnamed: 1']).strip()
+        nombres[idx] = nombre
+    
+    return nombres
+
 def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"): 
     """
     Carga todos los parámetros desde el archivo Excel para modelo de 5 temporadas
@@ -32,16 +59,22 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
             parametros['V_0'] = float(row.iloc[1])
         elif 'V_MAX' in param:
             parametros['V_MAX'] = float(row.iloc[1])
+        elif 'V_min' in param or 'V_MIN' in param:
+            parametros['V_min'] = float(row.iloc[1])
         elif 'psi' in param:
-            parametros['psi'] = float(row.iloc[1])
+            parametros['psi'] = float(row.iloc[1])  # [GWh]
         elif 'phi' in param:
-            parametros['phi'] = float(row.iloc[1])
+            parametros['phi'] = float(row.iloc[1])  # [GWh]
+        elif 'M' in param and 'MAX' not in param and 'MIN' not in param:  # M pero no V_MAX ni V_MIN
+            parametros['M'] = float(row.iloc[1])
     
     print(f"  V_30Nov_1 = {parametros.get('V_30Nov_1', 'N/A')} hm³")
     print(f"  V_0 = {parametros.get('V_0', 'N/A')} hm³")
     print(f"  V_MAX = {parametros.get('V_MAX', 'N/A')} hm³")
-    print(f"  psi (incumplimiento) = {parametros.get('psi', 'N/A')} MWh")
-    print(f"  phi (deficit) = {parametros.get('phi', 'N/A')} MWh")
+    print(f"  V_min = {parametros.get('V_min', 'N/A')} hm³")
+    print(f"  psi (incumplimiento) = {parametros.get('psi', 'N/A')} GWh")
+    print(f"  phi (umbral V_min) = {parametros.get('phi', 'N/A')} GWh")
+    print(f"  M (Big-M) = {parametros.get('M', 'N/A')}")
     
     # 2. FC_k (Filtraciones por cota)
     print("\nCargando filtraciones FC_k...")
@@ -92,7 +125,7 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     
     print(f"  Cargados {len(parametros['VUC'])} volúmenes de uso")
     
-    # 5. QA_a,w,t (Afluentes por semana y temporada)
+    # 5. QA_a,w,t (Afluentes por semana y temporada - 6 afluentes)
     print("\nCargando afluentes QA_a,w,t...")
     parametros['QA'] = {}
     
@@ -102,7 +135,8 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
         2: 'ABANICO', 
         3: 'ANTUCO',
         4: 'TUCAPEL',
-        5: 'CANECOL'
+        5: 'CANECOL',
+        6: 'LAJA_I'
     }
     
     # Leer datos desde hoja única QA_a,w,t
@@ -125,7 +159,7 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
             'ANTUCO': 3,
             'TUCAPEL': 4,
             'CANECOL': 5,
-            'LAJA_I': 6  # Sexto afluente (aunque no se usa en el modelo de 5 afluentes)
+            'LAJA_I': 6  # Sexto afluente
         }
         
         # Leer desde fila 2 en adelante (saltando encabezados)
@@ -135,45 +169,53 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
                 t = int(df_qa.iloc[row_idx, 0])
                 nombre_afluente = str(df_qa.iloc[row_idx, 1]).strip().upper()
                 
-                # Obtener índice del afluente (solo procesar los primeros 5)
+                # Obtener índice del afluente
                 if nombre_afluente in afluentes_map:
                     a = afluentes_map[nombre_afluente]
                     
-                    # Solo cargar los primeros 5 afluentes
-                    if a <= 5:
-                        # Leer las 48 semanas (columnas 2-49)
-                        for w in range(1, 49):
-                            col_idx = w + 1  # Columna 2 = semana 1, ..., columna 49 = semana 48
-                            try:
-                                valor = df_qa.iloc[row_idx, col_idx]
-                                parametros['QA'][(a, w, t)] = float(valor) if pd.notna(valor) else 0.0
-                            except:
-                                parametros['QA'][(a, w, t)] = 0.0
+                    # Cargar todos los afluentes (1-6)
+                    # Leer las 48 semanas (columnas 2-49)
+                    for w in range(1, 49):
+                        col_idx = w + 1  # Columna 2 = semana 1, ..., columna 49 = semana 48
+                        try:
+                            valor = df_qa.iloc[row_idx, col_idx]
+                            parametros['QA'][(a, w, t)] = float(valor) if pd.notna(valor) else 0.0
+                        except:
+                            parametros['QA'][(a, w, t)] = 0.0
             except Exception as e:
                 continue
         
         # Contar cuántas temporadas se cargaron
         temporadas_cargadas = set()
+        afluentes_cargados = set()
         for (a, w, t) in parametros['QA'].keys():
             temporadas_cargadas.add(t)
+            afluentes_cargados.add(a)
         
         for t in sorted(temporadas_cargadas):
             print(f"  ✓ Cargada temporada {t}")
+        
+        # Mostrar afluentes cargados
+        afluentes_nombres_map = {1: 'ELTORO', 2: 'ABANICO', 3: 'ANTUCO', 4: 'TUCAPEL', 5: 'CANECOL', 6: 'LAJA_I'}
+        print(f"  ✓ Afluentes cargados ({len(afluentes_cargados)}): ", end="")
+        print(", ".join([f"{a}:{afluentes_nombres_map[a]}" for a in sorted(afluentes_cargados)]))
             
     except Exception as e:
         print(f"  ⚠ Error cargando hoja 'QA_a,w,t': {e}")
         # Si falla, llenar con ceros
         for t in range(1, 6):
-            for a in range(1, 6):
+            for a in range(1, 7):  # Ahora incluye afluente 6
                 for w in range(1, 49):
                     parametros['QA'][(a, w, t)] = 0.0
     
     print(f"  Total cargados: {len(parametros['QA'])} valores de afluentes")
-    print(f"  Afluentes: 1-5, Semanas: 1-48, Temporadas: 1-5")
+    print(f"  Afluentes: 1-6, Semanas: 1-48, Temporadas: 1-5")
     
     # Mostrar ejemplos
     print(f"  Ejemplo QA[a=1,w=1,t=1] = {parametros['QA'][(1,1,1)]:.2f} m³/s")
     print(f"  Ejemplo QA[a=2,w=1,t=1] = {parametros['QA'][(2,1,1)]:.2f} m³/s")
+    if (6, 1, 1) in parametros['QA']:
+        print(f"  Ejemplo QA[a=6,w=1,t=1] (LAJA_I) = {parametros['QA'][(6,1,1)]:.2f} m³/s")
     
     # 6. QD_d,j,w (Demandas de riego - sin temporada, se repite cada año)
     print("\nCargando demandas de riego QD_d,j,w...")
@@ -222,7 +264,7 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     
     print(f"  Cargados {len(parametros['gamma'])} caudales máximos")
     
-    # 8. Rho_i (Rendimiento por central)
+    # 8. Rho_i (Rendimiento por central - Potencia específica)
     print("\nCargando rendimientos Rho_i...")
     df_rho = pd.read_excel(archivo_excel, sheet_name='Rho_i')
     parametros['rho'] = {}
@@ -230,12 +272,12 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     if 'i' in df_rho.columns and 'Rho' in df_rho.columns:
         for _, row in df_rho.iterrows():
             i = int(row['i'])
-            parametros['rho'][i] = float(row['Rho'])
+            parametros['rho'][i] = float(row['Rho'])  # Unidades: MW/(m³/s)
     elif df_rho.shape[1] >= 2:
         for _, row in df_rho.iterrows():
             if pd.notna(row.iloc[0]):
                 i = int(row.iloc[0])
-                parametros['rho'][i] = float(row.iloc[1])
+                parametros['rho'][i] = float(row.iloc[1])  # Unidades: MW/(m³/s)
     
     # Verificar que centrales de retiro tengan rho=0
     for i_retiro in [4, 12, 14]:
@@ -295,8 +337,8 @@ def mostrar_resumen(parametros):
     print(f"  - V_MAX: {parametros['V_MAX']:,.0f} hm³")
     
     print(f"\n💰 Penalizaciones:")
-    print(f"  - psi (incumplimiento): {parametros.get('psi', 'N/A'):,.0f} MWh")
-    print(f"  - phi (déficit): {parametros.get('phi', 'N/A'):,.0f} MWh")
+    print(f"  - psi (incumplimiento): {parametros.get('psi', 'N/A'):,.0f} GWh")
+    print(f"  - phi (déficit): {parametros.get('phi', 'N/A'):,.0f} GWh")
     
     print(f"\n📏 Cotas del lago:")
     print(f"  - Total cotas: {len(parametros['VC'])}")
@@ -305,15 +347,15 @@ def mostrar_resumen(parametros):
     
     print(f"\n🌊 Afluentes (QA):")
     print(f"  - Total registros: {len(parametros['QA'])}")
-    print(f"  - Afluentes: 1-5 (El Toro, Abanico, Antuco, Tucapel, Canecol)")
+    print(f"  - Afluentes: 1-6 (El Toro, Abanico, Antuco, Tucapel, Canecol, Laja I)")
     print(f"  - Semanas por temporada: 48")
     print(f"  - Temporadas: 5")
     
     # Promedios por afluente y temporada
-    afluentes_nombres = ['El Toro', 'Abanico', 'Antuco', 'Tucapel', 'Canecol']
+    afluentes_nombres = ['El Toro', 'Abanico', 'Antuco', 'Tucapel', 'Canecol', 'Laja I']
     for t in range(1, 6):
         print(f"\n  Temporada {t}:")
-        for a in range(1, 6):
+        for a in range(1, 7):  # Ahora incluye el afluente 6
             valores = [parametros['QA'][(a, w, t)] for w in range(1, 49) if (a, w, t) in parametros['QA']]
             if valores:
                 print(f"    - {afluentes_nombres[a-1]}: promedio {np.mean(valores):.2f} m³/s")
