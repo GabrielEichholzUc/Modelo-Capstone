@@ -17,6 +17,7 @@ from datetime import datetime
 ARCHIVO_EXCEL = 'Parametros_Finales.xlsx'
 BACKUP_DIR = 'backups_parametros'
 ESCENARIOS_DIR = 'escenarios_montecarlo'
+TODOS_ESCENARIOS_FILE = 'escenarios_montecarlo/todos_escenarios.xlsx'
 
 def aplicar_escenario(num_escenario=None, usar_promedio=False):
     """
@@ -32,18 +33,44 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
     print("APLICAR ESCENARIO MONTE CARLO AL MODELO")
     print("=" * 70)
     
-    # Cargar el escenario seleccionado
+    # Cargar todos los escenarios
+    print(f"\n📂 Cargando todos_escenarios.xlsx...")
+    
+    # Determinar qué escenario usar
     if usar_promedio:
-        print(f"\n📂 Cargando escenario promedio...")
-        escenario_file = f'{ESCENARIOS_DIR}/escenario_promedio.xlsx'
+        print(f"\n🎯 Usando escenario promedio...")
+        # Leer el archivo del escenario promedio
+        df_escenario = pd.read_excel(f'{ESCENARIOS_DIR}/escenario_promedio.xlsx')
+        print(f"  ✓ Escenario promedio cargado")
     else:
         if num_escenario is None:
             num_escenario = 1
-        print(f"\n📂 Cargando escenario #{num_escenario}...")
-        escenario_file = f'{ESCENARIOS_DIR}/escenario_{num_escenario:03d}.xlsx'
+        print(f"\n🎯 Seleccionando escenario #{num_escenario}...")
+        
+        # Verificar que el número de escenario esté en rango
+        if num_escenario < 1 or num_escenario > 100:
+            raise ValueError(f"El número de escenario debe estar entre 1 y 100")
+        
+        # Leer la hoja correspondiente de todos_escenarios.xlsx
+        sheet_name = f'Escenario_{num_escenario}'
+        
+        try:
+            df_escenario = pd.read_excel(TODOS_ESCENARIOS_FILE, sheet_name=sheet_name)
+            print(f"  ✓ Escenario #{num_escenario} cargado desde hoja '{sheet_name}'")
+        except Exception as e:
+            # Si no existe la hoja, intentar cargar desde archivo individual
+            print(f"  ⚠ No se encontró hoja '{sheet_name}' en todos_escenarios.xlsx")
+            print(f"  📂 Intentando cargar desde archivo individual...")
+            escenario_file = f'{ESCENARIOS_DIR}/escenario_{num_escenario:03d}.xlsx'
+            df_escenario = pd.read_excel(escenario_file)
+            print(f"  ✓ Cargado desde {escenario_file}")
+        
+        # Renombrar columnas S1-S48 a Semana_1-Semana_48 si es necesario
+        if 'S1' in df_escenario.columns:
+            rename_dict = {f'S{i}': f'Semana_{i}' for i in range(1, 49)}
+            df_escenario = df_escenario.rename(columns=rename_dict)
     
-    df_escenario = pd.read_excel(escenario_file)
-    print(f"  ✓ Escenario cargado: {len(df_escenario)} filas")
+    print(f"  Datos: {len(df_escenario)} filas")
     
     # Cargar el Excel de parámetros para obtener el formato original
     print(f"\n📂 Cargando {ARCHIVO_EXCEL}...")
@@ -133,9 +160,9 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
 if __name__ == '__main__':
     import os
     
-    # Verificar que existan los archivos necesarios
-    if not os.path.exists(ESCENARIOS_DIR):
-        print(f"❌ Error: No se encuentra el directorio '{ESCENARIOS_DIR}/'")
+    # Verificar que exista el archivo todos_escenarios.xlsx
+    if not os.path.exists(TODOS_ESCENARIOS_FILE):
+        print(f"❌ Error: No se encuentra el archivo '{TODOS_ESCENARIOS_FILE}'")
         print(f"   Ejecuta primero: python3 simulacion_montecarlo_afluentes.py")
         sys.exit(1)
     

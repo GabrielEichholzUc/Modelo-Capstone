@@ -282,8 +282,9 @@ for j in J:
         
         # Agregar leyenda con explicación de colores de fondo (solo para Primeros Regantes)
         if j in [1, 2, 4] and d == 1:
-            # Crear parches para la leyenda de alpha
+            # Crear parches para la leyenda de alpha y eta
             legend_elements = [
+                Patch(facecolor='#ffcdd2', alpha=0.4, label='η=1 (Incumplimiento convenio)'),
                 Patch(facecolor='#b3e5fc', alpha=0.3, label='α=0 (Canal Tucapel activo)'),
                 Patch(facecolor='#fff9c4', alpha=0.3, label='α=1 (Canal Abanico activo)')
             ]
@@ -292,10 +293,16 @@ for j in J:
             handles, labels = ax.get_legend_handles_labels()
             
             # Combinar ambas leyendas
-            ax.legend(handles + legend_elements, labels + ['α=0 (Tucapel)', 'α=1 (Abanico)'],
+            ax.legend(handles + legend_elements, labels + ['η=1 (Incumpl.)', 'α=0 (Tucapel)', 'α=1 (Abanico)'],
                      fontsize=9, loc='best', ncol=3)
         else:
-            ax.legend(fontsize=9, loc='best', ncol=3)
+            # Para otros demandantes, solo mostrar η si hay incumplimiento
+            legend_elements = [
+                Patch(facecolor='#ffcdd2', alpha=0.4, label='η=1 (Incumplimiento convenio)')
+            ]
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(handles + legend_elements, labels + ['η=1 (Incumpl.)'],
+                     fontsize=9, loc='best', ncol=3)
         ax.grid(True, alpha=0.3)
     
     # Añadir etiquetas de temporadas en el eje x
@@ -343,12 +350,30 @@ for j in J:
             demanda = data_t['Demanda_m3s'].values
             provision = data_t['Provisto_m3s'].values
             alpha_vals = data_t['Alpha'].values
+            eta_vals = data_t['Incumplimiento'].values
             
-            # Colorear fondo según alpha (solo para Primeros Regantes en canales afectados)
+            # Primero: Colorear fondo ROJO cuando η=1 (incumplimiento de convenio)
+            for i in range(len(semanas)):
+                semana_actual = semanas[i]
+                eta_actual = eta_vals[i]
+                
+                # Determinar límites del span
+                if i == len(semanas) - 1:
+                    semana_next = semana_actual + 1
+                else:
+                    semana_next = semanas[i+1]
+                
+                # Fondo rojo si η=1 (incumplimiento)
+                if eta_actual == 1:
+                    ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
+                              color='#ffcdd2', alpha=0.4, zorder=0)
+            
+            # Segundo: Colorear fondo según alpha (solo para Primeros Regantes en canales afectados)
             if j in [1, 2, 4] and d == 1:  # Solo Primeros Regantes
                 for i in range(len(semanas)):
                     semana_actual = semanas[i]
                     alpha_actual = alpha_vals[i]
+                    eta_actual = eta_vals[i]
                     
                     # Determinar límites del span
                     if i == len(semanas) - 1:
@@ -356,15 +381,17 @@ for j in J:
                     else:
                         semana_next = semanas[i+1]
                     
-                    # Colorear fondo: azul claro si alpha=0 (Tucapel), amarillo si alpha=1 (Abanico)
-                    if alpha_actual == 1:
-                        # alpha=1 → Abanico activo (amarillo claro)
-                        ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
-                                  color='#fff9c4', alpha=0.3, zorder=0)
-                    else:
-                        # alpha=0 → Tucapel activo (azul claro)
-                        ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
-                                  color='#b3e5fc', alpha=0.3, zorder=0)
+                    # Solo colorear si NO hay incumplimiento (para no sobrescribir el rojo)
+                    if eta_actual != 1:
+                        # Colorear fondo: azul claro si alpha=0 (Tucapel), amarillo si alpha=1 (Abanico)
+                        if alpha_actual == 1:
+                            # alpha=1 → Abanico activo (amarillo claro)
+                            ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
+                                      color='#fff9c4', alpha=0.3, zorder=0)
+                        else:
+                            # alpha=0 → Tucapel activo (azul claro)
+                            ax.axvspan(semana_actual - 0.5, semana_next - 0.5, 
+                                      color='#b3e5fc', alpha=0.3, zorder=0)
             
             ax.plot(semanas, demanda, linewidth=2, color='red', 
                     label='Demanda', linestyle='--', alpha=0.7)
@@ -377,18 +404,25 @@ for j in J:
             
             # Agregar leyenda con explicación de colores de fondo (solo para Primeros Regantes)
             if j in [1, 2, 4] and d == 1:
-                # Crear parches para la leyenda de alpha
+                # Crear parches para la leyenda de alpha y eta
                 legend_elements = [
+                    Patch(facecolor='#ffcdd2', alpha=0.4, label='η=1 (Incumpl.)'),
                     Patch(facecolor='#b3e5fc', alpha=0.3, label='α=0 (Tucapel)'),
                     Patch(facecolor='#fff9c4', alpha=0.3, label='α=1 (Abanico)')
                 ]
                 # Obtener handles de la leyenda existente
                 handles, labels = ax.get_legend_handles_labels()
                 # Combinar ambas leyendas
-                ax.legend(handles + legend_elements, labels + ['α=0', 'α=1'],
+                ax.legend(handles + legend_elements, labels + ['η=1', 'α=0', 'α=1'],
                          fontsize=8, loc='best')
             else:
-                ax.legend(fontsize=8, loc='best')
+                # Para otros demandantes, solo mostrar η si hay incumplimiento
+                legend_elements = [
+                    Patch(facecolor='#ffcdd2', alpha=0.4, label='η=1 (Incumpl.)')
+                ]
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(handles + legend_elements, labels + ['η=1'],
+                         fontsize=8, loc='best')
             
             ax.grid(True, alpha=0.3)
             ax.set_xlim(0, 49)

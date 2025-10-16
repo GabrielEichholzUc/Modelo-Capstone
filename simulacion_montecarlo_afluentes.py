@@ -37,7 +37,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 NUM_ESCENARIOS = 100  # Número de escenarios a generar
 SEED = 42  # Semilla para reproducibilidad
-METODO = 'empirico'  # Opciones: 'empirico', 'normal', 'lognormal', 'bootstrap'
+METODO = 'lognormal'  # Opciones: 'empirico', 'normal', 'lognormal', 'bootstrap'
 
 np.random.seed(SEED)
 
@@ -257,7 +257,7 @@ for n, escenario in enumerate(escenarios_ordenados):
 print(f"\n💾 Guardando todos los escenarios en un archivo consolidado...")
 
 with pd.ExcelWriter(f'{OUTPUT_DIR}/todos_escenarios.xlsx') as writer:
-    for n, escenario in enumerate(escenarios_ordenados[:20]):  # Primeros 20 (ordenados)
+    for n, escenario in enumerate(escenarios_ordenados):  # TODOS los escenarios (100)
         datos_escenario = []
         for t in range(1, 6):
             for a in range(1, 7):
@@ -267,8 +267,12 @@ with pd.ExcelWriter(f'{OUTPUT_DIR}/todos_escenarios.xlsx') as writer:
                 datos_escenario.append(fila)
         df_escenario = pd.DataFrame(datos_escenario)
         df_escenario.to_excel(writer, sheet_name=f'Escenario_{n+1}', index=False)
+        
+        # Mostrar progreso cada 10 escenarios
+        if (n + 1) % 10 == 0:
+            print(f"  ✓ Guardados {n+1}/{NUM_ESCENARIOS} escenarios...")
 
-print(f"  ✓ Guardado: {OUTPUT_DIR}/todos_escenarios.xlsx (primeros 20 escenarios)")
+print(f"  ✓ Guardado: {OUTPUT_DIR}/todos_escenarios.xlsx (todos los {NUM_ESCENARIOS} escenarios)")
 
 # ============================================================
 # ANÁLISIS Y VISUALIZACIÓN
@@ -385,11 +389,11 @@ print("✅ SIMULACIÓN COMPLETADA")
 print("=" * 70)
 print(f"\nArchivos generados:")
 print(f"  📁 Directorio: {OUTPUT_DIR}/")
-print(f"  📄 {NUM_ESCENARIOS} escenarios individuales (primeros 10 en Excel)")
+print(f"  📄 {NUM_ESCENARIOS} escenarios individuales (primeros 10 en archivos separados)")
 print(f"     ├─ escenario_001.xlsx: PESIMISTA (caudal promedio: {caudales_promedio[0]:.2f} m³/s)")
 print(f"     ├─ escenario_005.xlsx: INTERMEDIO")
 print(f"     └─ escenario_010.xlsx: OPTIMISTA (caudal promedio: {caudales_promedio[9]:.2f} m³/s)")
-print(f"  📄 todos_escenarios.xlsx (consolidado con primeros 20, ordenados)")
+print(f"  📄 todos_escenarios.xlsx (consolidado con TODOS los {NUM_ESCENARIOS} escenarios, ordenados)")
 print(f"  📄 escenario_promedio.xlsx (promedio de todos, para usar en el modelo)")
 print(f"  📊 comparacion_historicos_simulados.png (validación visual)")
 print(f"\n📊 Ordenamiento de escenarios:")
