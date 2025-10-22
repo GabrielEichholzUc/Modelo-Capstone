@@ -30,7 +30,7 @@ except ImportError:
 # CONFIGURACIÓN
 # ============================================================
 
-ARCHIVO_EXCEL = 'Parametros_Finales.xlsx'
+ARCHIVO_EXCEL = 'Parametros_Finales_Base.xlsx'
 HOJA_HISTORICOS = 'Caudales historicos'
 OUTPUT_DIR = 'escenarios_montecarlo'
 os.makedirs(OUTPUT_DIR, exist_ok=True)

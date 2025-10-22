@@ -6,7 +6,7 @@ Versión para 5 temporadas
 import pandas as pd
 import numpy as np
 
-def cargar_nombres_centrales(archivo_excel="Parametros_Finales.xlsx"):
+def cargar_nombres_centrales(archivo_excel="Parametros_Finales_Base.xlsx"):
     """
     Carga los nombres de las centrales desde la hoja Índices
     
@@ -33,7 +33,7 @@ def cargar_nombres_centrales(archivo_excel="Parametros_Finales.xlsx"):
     
     return nombres
 
-def cargar_ve_0_precalculado(archivo_excel="Parametros_Finales.xlsx"):
+def cargar_ve_0_precalculado(archivo_excel="Parametros_Finales_Base.xlsx"):
     """
     Carga los volúmenes iniciales por uso (ve_0) precalculados desde Excel.
     Estos valores deben ser generados previamente usando preprocesar_volumenes_uso.py
@@ -62,7 +62,7 @@ def cargar_ve_0_precalculado(archivo_excel="Parametros_Finales.xlsx"):
         print("    y que exista la hoja 'VE_0_precalculado' en el Excel.")
         return None
 
-def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"): 
+def cargar_parametros_excel(archivo_excel="Parametros_Finales_Base.xlsx"): 
     """
     Carga todos los parámetros desde el archivo Excel para modelo de 5 temporadas
     

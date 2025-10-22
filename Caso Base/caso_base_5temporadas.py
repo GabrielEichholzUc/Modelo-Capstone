@@ -72,7 +72,6 @@ class ModeloLaja:
         self.V_MAX = dict_parametros.get('V_MAX')
         self.FC = dict_parametros.get('FC')
         self.VC = dict_parametros.get('VC')
-        self.VUC = dict_parametros.get('VUC')
         self.QA = dict_parametros.get('QA')
         self.QD = dict_parametros.get('QD')
         self.gamma = dict_parametros.get('gamma')
@@ -82,7 +81,6 @@ class ModeloLaja:
         self.psi = dict_parametros.get('psi')
         self.phi = dict_parametros.get('phi')
         self.V_min = dict_parametros.get('V_min', 1400)  # Default 1400 si no está en Excel
-        self.M_bigM = dict_parametros.get('M', 10000)  # Default 10000 si no está en Excel
         self.Qf = dict_parametros.get('Qf')  # Caudal de filtración
         self.theta = dict_parametros.get('theta')  # Prioridades theta[d,j]
         self.K = list(self.VC.keys())
@@ -229,20 +227,24 @@ class ModeloLaja:
         # ========== 7. ABANICO (Central 2 + Canal j=4) ==========
         for t in self.T:
             for w in self.W:
-                # Balance central Abanico
+                # Balance central Abanico: entrada = salida_turbinada + salida_vertida
+                # Entrada: QA[2] + qg[16] (filtraciones del lago)
+                # Salida turbinada: qg[2]
+                # Salida vertida: qv[2]
                 self.model.addConstr(
-                    self.qg[2, w, t] == self.QA[2, w, t] + self.qg[16, w, t] - self.qv[2, w, t],
+                    self.qg[2, w, t] + self.qv[2, w, t] == self.QA[2, w, t] + self.qg[16, w, t],
                     name=f"abanico_{w}_{t}")
                 
                 # Distribución a regantes en canal Abanico
+                # El agua disponible para riego es lo que pasa por la central
                 self.model.addConstr(
-                    gp.quicksum(self.qp[d, 4, w, t] for d in self.D) == self.qg[2, w, t] + self.qv[2, w, t],
+                    gp.quicksum(self.qp[d, 4, w, t] for d in self.D) <= self.qg[2, w, t],
                     name=f"abanico_canal_{w}_{t}")
                 
                 # Balance demanda en canal Abanico (qp puede ser menor o igual a demanda)
                 for d in self.D:
                     self.model.addConstr(
-                        self.qp[d, 4, w, t] + self.deficit[d, 4, w, t] == self.QD.get((d, 4, w), 0),
+                        self.qp[d, 4, w, t] + self.deficit[d, 4, w, t] >= self.QD.get((d, 4, w), 0),
                         name=f"balance_abanico_{d}_{w}_{t}")
         
         # ========== 8. ANTUCO (Central 3) ==========
@@ -252,17 +254,22 @@ class ModeloLaja:
                     self.qg[3, w, t] == self.QA[3, w, t] + self.qg[1, w, t] + self.qg[2, w, t] + self.qv[2, w, t] - self.qv[3, w, t],
                     name=f"antuco_{w}_{t}")
         
-        # ========== 7. RIEZACO (Central 4 - Punto j=1) ==========
+        # ========== 9. RIEZACO (Punto j=1 - NO es una central, solo distribución a riego) ==========
+        # El agua que llega de Antuco se distribuye a riego o se vierte hacia abajo (Clajrucue)
         for t in self.T:
             for w in self.W:
+                # Balance: agua_entrante = agua_para_riego + agua_vertida_abajo
+                # Entrada: qg[3] + qv[3] (de Antuco)
+                # Salida a riego: sum qp[d,1]
+                # Salida vertida: qv[4] (va a Clajrucue)
                 self.model.addConstr(
-                    gp.quicksum(self.qp[d, 1, w, t] for d in self.D) == self.qg[3, w, t] + self.qv[3, w, t] - self.qv[4, w, t],
+                    gp.quicksum(self.qp[d, 1, w, t] for d in self.D) + self.qv[4, w, t] == self.qg[3, w, t] + self.qv[3, w, t],
                     name=f"riezaco_disp_{w}_{t}")
                 
                 # Balance demanda en canal RieZaCo (qp puede ser menor o igual a demanda)
                 for d in self.D:
                     self.model.addConstr(
-                        self.qp[d, 1, w, t] + self.deficit[d, 1, w, t] == self.QD.get((d, 1, w), 0),
+                        self.qp[d, 1, w, t] + self.deficit[d, 1, w, t] >= self.QD.get((d, 1, w), 0),
                         name=f"balance_riezaco_{d}_{w}_{t}")
         
         # ========== 9-14. CENTRALES INTERMEDIAS ==========
@@ -305,17 +312,18 @@ class ModeloLaja:
                     self.qg[11, w, t] == self.qg[10, w, t] + self.qv[10, w, t] - self.qv[11, w, t],
                     name=f"canal_laja_{w}_{t}")
         
-        # ========== 16. RIESALTOS (Central 12 - Punto j=3) ==========
+        # ========== 16. RIESALTOS (Punto j=3 - Distribución a riego desde vertimiento Canal Laja) ==========
         for t in self.T:
             for w in self.W:
+                # El agua disponible para riego Saltos viene del vertimiento de Canal Laja
                 self.model.addConstr(
-                    self.qp[3, 3, w, t] == self.qv[11, w, t],
+                    gp.quicksum(self.qp[d, 3, w, t] for d in self.D) == self.qv[11, w, t],
                     name=f"riesaltos_disp_{w}_{t}")
                 
                 # Balance demanda en canal RieSaltos (qp puede ser menor o igual a demanda)
                 for d in self.D:
                     self.model.addConstr(
-                        self.qp[d, 3, w, t] + self.deficit[d, 3, w, t] == self.QD.get((d, 3, w), 0),
+                        self.qp[d, 3, w, t] + self.deficit[d, 3, w, t] >= self.QD.get((d, 3, w), 0),
                         name=f"balance_riesaltos_{d}_{w}_{t}")
         
         # ========== 17. LAJA 1 (Central 13) ==========
@@ -334,7 +342,8 @@ class ModeloLaja:
                     self.qg[15, w, t] == self.qg[11, w, t] - self.qv[15, w, t],
                     name=f"el_diuto_{w}_{t}")
         
-        # ========== 19. RIETUCAPEL (Central 14 - Punto j=2) ==========
+        # ========== 19. RIETUCAPEL (Punto j=2 - Distribución a riego desde El Diuto) ==========
+        # El agua que pasa por El Diuto (qg[15]) está disponible para riego
         for t in self.T:
             for w in self.W:
                 self.model.addConstr(
@@ -344,7 +353,7 @@ class ModeloLaja:
                 # Balance demanda en canal RieTucapel (qp puede ser menor o igual a demanda)
                 for d in self.D:
                     self.model.addConstr(
-                        self.qp[d, 2, w, t] + self.deficit[d, 2, w, t] == self.QD.get((d, 2, w), 0),
+                        self.qp[d, 2, w, t] + self.deficit[d, 2, w, t] >= self.QD.get((d, 2, w), 0),
                         name=f"balance_rietucapel_{d}_{w}_{t}")
         
         # ========== 20. VERTIMIENTO EL TORO = 0 ==========
@@ -443,10 +452,8 @@ class ModeloLaja:
         
         if time_limit:
             self.model.Params.TimeLimit = time_limit
-        if mip_gap:
-            self.model.Params.MIPGap = mip_gap
-        else:
-            self.model.Params.MIPGap = 0.01  # 1% por defecto
+        # MIPGap solo aplica para modelos MILP, no para LP puros
+        # Como este es un modelo LP, no configuramos MIPGap
         
         self.model.optimize()
         
@@ -457,12 +464,10 @@ class ModeloLaja:
         if self.model.status == GRB.OPTIMAL:
             print("✓ Solución óptima encontrada")
             print(f"Valor objetivo: {self.model.ObjVal:,.2f} GWh")
-            print(f"Gap de optimalidad: {self.model.MIPGap*100:.4f}%")
             print(f"Tiempo de resolución: {self.model.Runtime:.2f} segundos")
         elif self.model.status == GRB.TIME_LIMIT:
             print("⚠ Tiempo límite alcanzado")
-            print(f"Mejor solución encontrada: {self.model.ObjVal:,.2f} MWh")
-            print(f"Gap de optimalidad: {self.model.MIPGap*100:.2f}%")
+            print(f"Mejor solución encontrada: {self.model.ObjVal:,.2f} GWh")
         else:
             print(f"✗ Estado de optimización: {self.model.status}")
         

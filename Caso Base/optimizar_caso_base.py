@@ -19,7 +19,7 @@ def verificar_prerequisitos():
     prerequisitos_ok = True
     
     # 1. Verificar archivo Excel
-    archivo_excel = "Parametros_Finales.xlsx"
+    archivo_excel = "Parametros_Finales_Base.xlsx"
     if os.path.exists(archivo_excel):
         print(f"  ✓ Archivo de parámetros encontrado: {archivo_excel}")
     else:
@@ -177,7 +177,7 @@ def main():
         print(f"  Estado:                 Óptimo")
         print(f"  Valor objetivo:         {modelo.model.ObjVal:,.2f} GWh")
         print(f"  Tiempo de resolución:   {tiempo_total:.2f} segundos ({tiempo_total/60:.2f} minutos)")
-        print(f"  Gap de optimalidad:     {modelo.model.MIPGap*100:.4f}%")
+        # MIPGap no está disponible para modelos LP puros
         
     elif modelo.model.status == GRB.TIME_LIMIT:
         print("\n⚠️  TIEMPO LÍMITE ALCANZADO")
@@ -185,7 +185,6 @@ def main():
         print(f"  Estado:                 Tiempo límite")
         print(f"  Mejor solución:         {modelo.model.ObjVal:,.2f} GWh")
         print(f"  Tiempo de resolución:   {tiempo_total:.2f} segundos")
-        print(f"  Gap de optimalidad:     {modelo.model.MIPGap*100:.2f}%")
         print("\n  Nota: La solución puede no ser óptima, pero es factible.")
         
     else:

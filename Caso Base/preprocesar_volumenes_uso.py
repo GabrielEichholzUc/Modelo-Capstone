@@ -199,7 +199,8 @@ def preprocesar_volumenes_uso_desde_parametros(parametros):
     resultados = calcular_volumenes_iniciales_por_uso(V_30Nov_valores, parametros['FS'])
     
     # Agregar al diccionario de parámetros
-    parametros['ve_0_precalculado'] = resultados['ve_0']
+    # IMPORTANTE: Usar ve_0_por_uso para tener los valores separados por uso (u, t)
+    parametros['ve_0_precalculado'] = resultados['ve_0_por_uso']
     parametros['VG_por_temporada'] = resultados['VG']
     parametros['VR_por_temporada'] = resultados['VR']
     

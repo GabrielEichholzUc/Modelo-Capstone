@@ -5,7 +5,7 @@ Aplicar Escenario Monte Carlo al Modelo
 ========================================
 
 Este script toma un escenario generado por Monte Carlo y lo integra
-en el archivo Parametros_Finales.xlsx para ser usado por el modelo.
+en el archivo Parametros_Finales_Base.xlsx para ser usado por el modelo.
 """
 
 import pandas as pd
@@ -14,7 +14,7 @@ import sys
 import shutil
 from datetime import datetime
 
-ARCHIVO_EXCEL = 'Parametros_Finales.xlsx'
+ARCHIVO_EXCEL = 'Parametros_Finales_Base.xlsx'
 BACKUP_DIR = 'backups_parametros'
 ESCENARIOS_DIR = 'escenarios_montecarlo'
 TODOS_ESCENARIOS_FILE = 'escenarios_montecarlo/todos_escenarios.xlsx'
