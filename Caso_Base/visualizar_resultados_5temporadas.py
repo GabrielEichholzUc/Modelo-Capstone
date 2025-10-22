@@ -28,9 +28,18 @@ os.makedirs(output_dir, exist_ok=True)
 print("Cargando resultados...")
 volumenes = pd.read_csv('resultados/volumenes_lago.csv')
 riego = pd.read_csv('resultados/riego.csv')
-alpha = pd.read_csv('resultados/decision_alpha.csv')
 generacion = pd.read_csv('resultados/generacion.csv')
 energia_total = pd.read_csv('resultados/energia_total.csv')
+
+# Intentar cargar decision_alpha.csv (solo existe en modelo MIP)
+try:
+    alpha = pd.read_csv('resultados/decision_alpha.csv')
+    tiene_alpha = True
+    print(f"✓ decision_alpha.csv encontrado (modelo MIP)")
+except FileNotFoundError:
+    alpha = None
+    tiene_alpha = False
+    print(f"⚠ decision_alpha.csv no encontrado (caso base LP - sin variables alpha)")
 
 # Intentar cargar volúmenes por uso
 try:
@@ -44,7 +53,7 @@ except FileNotFoundError:
 # Cargar parámetros para obtener V_min
 try:
     from cargar_datos_5temporadas import cargar_parametros_excel
-    parametros = cargar_parametros_excel()
+    parametros = cargar_parametros_excel('Parametros_Finales_Base.xlsx')
     V_min = parametros.get('V_min', 1400)
     print(f"✓ V_min cargado: {V_min} hm³")
 except:
@@ -186,14 +195,24 @@ print("📊 Generando gráfico 5: Demanda vs Provisión (todas temporadas agrega
 
 # Cargar demandas del Excel
 try:
-    demandas = pd.read_excel('Parametros_Finales.xlsx', sheet_name='QD_d,j,w')
+    demandas = pd.read_excel('Parametros_Finales_Base.xlsx', sheet_name='QD_d,j,w')
 except:
     print("  ⚠ No se pudo cargar QD_d,j,w, usando valores de riego.csv")
     demandas = None
 
-# Agregar alpha al dataframe de riego
-riego_alpha = riego.merge(alpha, on=['Semana', 'Temporada'], how='left')
-riego_alpha['Alpha'] = riego_alpha['Alpha'].fillna(0)
+# Agregar alpha al dataframe de riego (solo si existe)
+if tiene_alpha:
+    riego_alpha = riego.merge(alpha, on=['Semana', 'Temporada'], how='left')
+    riego_alpha['Alpha'] = riego_alpha['Alpha'].fillna(0)
+else:
+    # Caso base: no hay alpha, crear columna con 0 (por defecto Tucapel)
+    riego_alpha = riego.copy()
+    riego_alpha['Alpha'] = 0
+
+# Crear columna 'Incumplimiento' si no existe (para caso base)
+if 'Incumplimiento' not in riego_alpha.columns:
+    # Incumplimiento = 1 si hay déficit > 0
+    riego_alpha['Incumplimiento'] = (riego_alpha['Deficit_m3s'] > 0.01).astype(int)
 
 # Definir qué demandantes mostrar por canal
 demandantes_por_canal = {
@@ -459,11 +478,11 @@ print("\n7. Generando gráfico de generación por central...")
 from cargar_datos_5temporadas import cargar_parametros_excel, cargar_nombres_centrales
 
 # Cargar nombres de centrales
-nombres_centrales = cargar_nombres_centrales()
+nombres_centrales = cargar_nombres_centrales('Parametros_Finales_Base.xlsx')
 print(f"  Nombres de centrales cargados: {len(nombres_centrales)} centrales")
 
 # Cargar datos de rendimiento para filtrar centrales con rho > 0
-parametros = cargar_parametros_excel()
+parametros = cargar_parametros_excel('Parametros_Finales_Base.xlsx')
 rho = parametros['rho']  # Diccionario {i: rendimiento}
 
 # Filtrar centrales con rendimiento > 0
