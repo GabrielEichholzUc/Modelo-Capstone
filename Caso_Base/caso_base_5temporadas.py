@@ -37,7 +37,8 @@ class ModeloLaja:
         self.VC = {}  # VC[k]: Volumen en cota k [hm³]
         self.VUC = {}  # VUC[u,k]: Volumen de uso u en cota k [hm³]
         self.QA = {}  # QA[a,w,t]: Caudal afluente a en semana w de temporada t [m³/s]
-        self.QD = {}  # QD[d,j,w]: Caudal demandado por d en canal j en semana w [m³/s]
+        self.qd = {}  # qd[d,j,w]: Valores base de demanda d en canal j en semana w [m³/s]
+        self.QD = {}  # QD[d,j,w]: Demanda real = qd[d,j,w] * theta[d,j] [m³/s]
         self.gamma = {}  # gamma[i]: Caudal máximo central i [m³/s]
         self.rho = {}  # rho[i]: Rendimiento central i [MW/(m³/s)] - Potencia específica
         self.pi = {}  # pi[i]: Potencia máxima central i [MW]
@@ -73,7 +74,8 @@ class ModeloLaja:
         self.FC = dict_parametros.get('FC')
         self.VC = dict_parametros.get('VC')
         self.QA = dict_parametros.get('QA')
-        self.QD = dict_parametros.get('QD')
+        self.qd = dict_parametros.get('qd')  # Valores base de demandas
+        self.QD = dict_parametros.get('QD')  # Demandas reales = qd * theta
         self.gamma = dict_parametros.get('gamma')
         self.rho = dict_parametros.get('rho')
         self.pi = dict_parametros.get('pi')

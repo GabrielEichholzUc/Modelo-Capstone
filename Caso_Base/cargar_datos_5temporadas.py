@@ -249,10 +249,10 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales_Base.xlsx"):
     if (6, 1, 1) in parametros['QA']:
         print(f"  Ejemplo QA[a=6,w=1,t=1] (LAJA_I) = {parametros['QA'][(6,1,1)]:.2f} m³/s")
     
-    # 6. QD_d,j,w (Demandas de riego - sin temporada, se repite cada año)
-    print("\nCargando demandas de riego QD_d,j,w...")
+    # 6. qd_d,j,w (Valores base de demandas de riego - sin temporada, se repite cada año)
+    print("\nCargando valores base de demandas qd_d,j,w...")
     df_qd = pd.read_excel(archivo_excel, sheet_name='QD_d,j,w')
-    parametros['QD'] = {}
+    parametros['qd'] = {}
     
     # Estructura: j | d | 1 | 2 | 3 | ... | 48
     for _, row in df_qd.iterrows():
@@ -267,17 +267,17 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales_Base.xlsx"):
                     valor = float(row[str(w)])
                 else:
                     valor = 0.0
-                parametros['QD'][(d, j, w)] = valor
+                parametros['qd'][(d, j, w)] = valor
             except:
-                parametros['QD'][(d, j, w)] = 0.0
+                parametros['qd'][(d, j, w)] = 0.0
     
-    print(f"  Cargados {len(parametros['QD'])} valores de demanda")
+    print(f"  Cargados {len(parametros['qd'])} valores base de demanda")
     
     # Mostrar ejemplos
-    if (1, 1, 1) in parametros['QD']:
-        print(f"    QD[d=1,j=1,w=1] = {parametros['QD'][(1,1,1)]:.2f} m³/s")
-    if (1, 4, 1) in parametros['QD']:
-        print(f"    QD[d=1,j=4,w=1] (Abanico) = {parametros['QD'][(1,4,1)]:.2f} m³/s")
+    if (1, 1, 1) in parametros['qd']:
+        print(f"    qd[d=1,j=1,w=1] = {parametros['qd'][(1,1,1)]:.2f} m³/s")
+    if (1, 4, 1) in parametros['qd']:
+        print(f"    qd[d=1,j=4,w=1] (Abanico) = {parametros['qd'][(1,4,1)]:.2f} m³/s")
     
     # 7. Theta_d,j (Prioridad de demandante d en canal j)
     print("\nCargando prioridades Theta_d,j...")
@@ -303,6 +303,28 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales_Base.xlsx"):
         print(f"    Theta[d=1,j=1] = {parametros['theta'][(1,1)]:.2f}")
     if (2, 1) in parametros['theta']:
         print(f"    Theta[d=2,j=1] = {parametros['theta'][(2,1)]:.2f}")
+    
+    # Calcular QD = qd * theta (demandas reales)
+    print("\nCalculando demandas reales QD = qd * theta...")
+    parametros['QD'] = {}
+    for (d, j, w) in parametros['qd']:
+        if (d, j) in parametros['theta']:
+            parametros['QD'][(d, j, w)] = parametros['qd'][(d, j, w)] * parametros['theta'][(d, j)]
+        else:
+            parametros['QD'][(d, j, w)] = 0.0
+    
+    print(f"  Calculados {len(parametros['QD'])} valores de demanda real")
+    # Mostrar ejemplos comparativos
+    if (1, 1, 1) in parametros['qd'] and (1, 1) in parametros['theta']:
+        qd_val = parametros['qd'][(1, 1, 1)]
+        theta_val = parametros['theta'][(1, 1)]
+        qd_final = parametros['QD'][(1, 1, 1)]
+        print(f"    Ejemplo d=1,j=1,w=1: qd={qd_val:.2f} * theta={theta_val:.2f} = QD={qd_final:.2f} m³/s")
+    if (1, 4, 1) in parametros['qd'] and (1, 4) in parametros['theta']:
+        qd_val = parametros['qd'][(1, 4, 1)]
+        theta_val = parametros['theta'][(1, 4)]
+        qd_final = parametros['QD'][(1, 4, 1)]
+        print(f"    Ejemplo d=1,j=4,w=1: qd={qd_val:.2f} * theta={theta_val:.2f} = QD={qd_final:.2f} m³/s")
     
     # 8. Gamma_i (Caudal máximo por central)
     print("\nCargando caudales máximos Gamma_i...")
@@ -426,8 +448,9 @@ def mostrar_resumen(parametros):
             if valores:
                 print(f"    - {afluentes_nombres[a-1]}: promedio {np.mean(valores):.2f} m³/s")
     
-    print(f"\n🚰 Demandas de riego (QD):")
-    print(f"  - Total registros: {len(parametros['QD'])}")
+    print(f"\n🚰 Demandas de riego:")
+    print(f"  - qd (valores base): {len(parametros['qd'])} registros")
+    print(f"  - QD (demandas reales = qd * theta): {len(parametros['QD'])} registros")
     print(f"  - Canales: 4 (RieZaCo=1, RieTucapel=2, RieSaltos=3, Abanico=4)")
     print(f"  - Demandantes: 3 (Primeros=1, Segundos=2, Saltos del Laja=3)")
     
