@@ -26,14 +26,14 @@ os.makedirs(output_dir, exist_ok=True)
 # ============================================================
 
 print("Cargando resultados...")
-volumenes = pd.read_csv('resultados/volumenes_lago.csv')
-riego = pd.read_csv('resultados/riego.csv')
-generacion = pd.read_csv('resultados/generacion.csv')
-energia_total = pd.read_csv('resultados/energia_total.csv')
+volumenes = pd.read_csv('resultados_caso_base/volumenes_lago.csv')
+riego = pd.read_csv('resultados_caso_base/riego.csv')
+generacion = pd.read_csv('resultados_caso_base/generacion.csv')
+energia_total = pd.read_csv('resultados_caso_base/energia_total.csv')
 
 # Intentar cargar decision_alpha.csv (solo existe en modelo MIP)
 try:
-    alpha = pd.read_csv('resultados/decision_alpha.csv')
+    alpha = pd.read_csv('resultados_caso_base/decision_alpha.csv')
     tiene_alpha = True
     print(f"✓ decision_alpha.csv encontrado (modelo MIP)")
 except FileNotFoundError:
@@ -43,7 +43,7 @@ except FileNotFoundError:
 
 # Intentar cargar volúmenes por uso
 try:
-    volumenes_uso = pd.read_csv('resultados/volumenes_por_uso.csv')
+    volumenes_uso = pd.read_csv('resultados_caso_base/volumenes_por_uso.csv')
     print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(volumenes_uso)} volúmenes por uso, {len(generacion)} generación, {len(energia_total)} GEN[i,t]")
 except FileNotFoundError:
     volumenes_uso = None
