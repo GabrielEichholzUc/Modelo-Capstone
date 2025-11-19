@@ -1,5 +1,5 @@
 """
-Script principal para optimizar el modelo de 5 temporadas de la cuenca del Laja
+Script principal para optimizar el modelo de 10 temporadas de la cuenca del Laja
 Utiliza la formulación LaTeX con linealización por zonas progresivas
 """
 
@@ -9,10 +9,10 @@ import time
 
 def main():
     """
-    Función principal para ejecutar la optimización de 5 temporadas
+    Función principal para ejecutar la optimización de 10 temporadas
     """
     print("\n" + "="*70)
-    print(" "*10 + "OPTIMIZACIÓN CUENCA DEL LAJA - 5 TEMPORADAS")
+    print(" "*10 + "OPTIMIZACIÓN CUENCA DEL LAJA - 10 TEMPORADAS")
     print(" "*10 + "Convenio Hidroeléctricas y Riegos")
     print("="*70 + "\n")
     
@@ -42,17 +42,17 @@ def main():
     print("PASO 4: Ejecutando optimización...")
     print("-" * 70)
     
-    # Configuración de optimización (ajustada para modelo más grande)
-    tiempo_limite = 3600  # 1 hora (el modelo es 5x más grande)
-    gap = 0.02  # 2% de optimalidad (más permisivo por tamaño)
+    # Configuración de optimización (ajustada para modelo de 10 años)
+    tiempo_limite = 7200  # 2 horas (el modelo es 2x más grande)
+    gap = 0.02  # 2% de optimalidad
     
     print(f"\nConfiguración:")
     print(f"  - Tiempo límite: {tiempo_limite} segundos ({tiempo_limite/60:.0f} minutos)")
     print(f"  - Gap de optimalidad: {gap*100:.1f}%")
     print(f"  - Solver: Gurobi")
-    print(f"  - Temporadas: 5")
+    print(f"  - Temporadas: {len(modelo.T)}")
     print(f"  - Semanas por temporada: 48")
-    print(f"  - Total semanas simuladas: 240")
+    print(f"  - Total semanas simuladas: {len(modelo.T) * 48}")
     print()
     
     inicio = time.time()
