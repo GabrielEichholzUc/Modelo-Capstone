@@ -87,9 +87,9 @@ print(f"✓ Datos cargados: {len(volumenes)} registros de volúmenes, {len(riego
 
 print("\n📊 Generando DASHBOARD RESUMEN (Gráfico 0)...")
 
-fig = plt.figure(figsize=(24, 16))
-gs = fig.add_gridspec(4, 3, hspace=0.35, wspace=0.3, 
-                      left=0.08, right=0.95, top=0.94, bottom=0.05)
+fig = plt.figure(figsize=(20, 12))
+gs = fig.add_gridspec(4, 3, hspace=0.4, wspace=0.35, 
+                      left=0.08, right=0.96, top=0.93, bottom=0.06)
 
 # Colores por temporada
 colors_temp = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
@@ -109,14 +109,15 @@ ax1.axhline(y=V_MIN, color='red', linestyle='--', linewidth=2, alpha=0.7, label=
 ax1.axhline(y=V_MAX, color='green', linestyle='--', linewidth=2, alpha=0.7, label=f'V_MAX ({V_MAX} hm³)')
 
 for t in range(1, 6):
-    ax1.axvline(x=t*48, color='gray', linestyle=':', alpha=0.4)
+    ax1.axvline(x=t*48, color='gray', linestyle=':', alpha=0.4, linewidth=1)
 
-ax1.set_xlabel('Semanas (Agrupadas por Temporada)', fontweight='bold', fontsize=12)
-ax1.set_ylabel('Volumen (hm³)', fontweight='bold', fontsize=12)
+ax1.set_xlabel('Semanas (Agrupadas por Temporada)', fontweight='bold', fontsize=11)
+ax1.set_ylabel('Volumen (hm³)', fontweight='bold', fontsize=11)
 ax1.set_title('📊 VOLUMEN DEL LAGO LAJA - 5 TEMPORADAS', 
-              fontweight='bold', fontsize=14, pad=15)
-ax1.legend(loc='best', framealpha=0.95, fontsize=10)
+              fontweight='bold', fontsize=13, pad=12)
+ax1.legend(loc='best', framealpha=0.95, fontsize=9, ncol=7)
 ax1.grid(True, alpha=0.3)
+ax1.set_ylim(V_MIN - 200, V_MAX + 200)
 
 # ========== PANEL 2: GENERACIÓN POR CENTRAL ==========
 ax2 = fig.add_subplot(gs[1, 0])
@@ -296,9 +297,9 @@ for i, (label, value, icon) in enumerate(kpi_data):
 
 # Título del dashboard
 fig.suptitle('🎯 DASHBOARD RESUMEN - MODELO OPTIMIZACIÓN LAGO LAJA', 
-             fontsize=18, fontweight='bold', y=0.98)
+             fontsize=16, fontweight='bold', y=0.97)
 
-plt.savefig(f'{output_dir}/0_dashboard_resumen.png', dpi=300, bbox_inches='tight')
+plt.savefig(f'{output_dir}/0_dashboard_resumen.png', dpi=300, bbox_inches='tight', facecolor='white')
 print(f"  ✓ Guardado: {output_dir}/0_dashboard_resumen.png")
 plt.close()
 
