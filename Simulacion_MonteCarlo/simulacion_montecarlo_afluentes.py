@@ -30,8 +30,8 @@ except ImportError:
 # CONFIGURACIÓN
 # ============================================================
 
-ARCHIVO_EXCEL = 'Parametros_Nuevos.xlsx'
-HOJA_HISTORICOS = 'Caudal Histórico semanal'
+ARCHIVO_EXCEL = '../Parametros_Nuevos.xlsx'
+HOJA_HISTORICOS = 'Caudales historicos'
 OUTPUT_DIR = 'escenarios_montecarlo'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -72,22 +72,17 @@ if 'CENTRAL' in df_historicos.columns:
 elif 'Central' in df_historicos.columns:
     df_historicos['a'] = df_historicos['Central'].map(centrales_a_afluente)
 
+# Si 'a' ya existe en el archivo, no necesitamos mapear
+if 'a' not in df_historicos.columns:
+    print("⚠️  Columna 'a' (afluente) no encontrada")
+
 # Renombrar 'AÑO' a 'Año' si es necesario
 if 'AÑO' in df_historicos.columns:
     df_historicos = df_historicos.rename(columns={'AÑO': 'Año'})
 
-# Identificar columnas de fechas (las 48 semanas)
-# Formato: 'abr 1', 'abr 8', ..., 'mar 24'
-columnas_fechas = [col for col in df_historicos.columns 
-                   if isinstance(col, str) and any(mes in col.lower() 
-                   for mes in ['abr', 'may', 'jun', 'jul', 'ago', 'sep', 
-                              'oct', 'nov', 'dic', 'ene', 'feb', 'mar'])]
-
-# Renombrar columnas de fechas a números de semana (1-48)
-semanas_dict = {col: idx + 1 for idx, col in enumerate(columnas_fechas[:48])}
-df_historicos = df_historicos.rename(columns=semanas_dict)
-
-semanas = list(range(1, len(columnas_fechas[:48]) + 1))
+# Las semanas ya están numeradas como 1, 2, 3, ..., 48
+semanas = [col for col in df_historicos.columns if isinstance(col, int)]
+semanas.sort()
 
 print(f"  ✓ Datos cargados: {len(df_historicos)} registros")
 print(f"  Afluentes únicos: {sorted(df_historicos['a'].dropna().unique())}")
