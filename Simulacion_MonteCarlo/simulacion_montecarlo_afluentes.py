@@ -30,9 +30,15 @@ except ImportError:
 # CONFIGURACIÓN
 # ============================================================
 
-ARCHIVO_EXCEL = '../Parametros_Nuevos.xlsx'
+# Obtener la ruta absoluta al directorio raíz del proyecto
+import sys
+from pathlib import Path
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+ARCHIVO_EXCEL = PROJECT_ROOT / 'Parametros_Nuevos.xlsx'
 HOJA_HISTORICOS = 'Caudales historicos'
-OUTPUT_DIR = 'escenarios_montecarlo'
+OUTPUT_DIR = SCRIPT_DIR / 'escenarios_montecarlo'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 NUM_ESCENARIOS = 100  # Número de escenarios a generar
@@ -67,22 +73,40 @@ centrales_a_afluente = {
 }
 
 # Crear columna 'a' (índice de afluente)
-if 'CENTRAL' in df_historicos.columns:
+if 'a' in df_historicos.columns:
+    # Si 'a' ya existe, usarla directamente
+    pass
+elif 'CENTRAL' in df_historicos.columns:
     df_historicos['a'] = df_historicos['CENTRAL'].map(centrales_a_afluente)
 elif 'Central' in df_historicos.columns:
     df_historicos['a'] = df_historicos['Central'].map(centrales_a_afluente)
-
-# Si 'a' ya existe en el archivo, no necesitamos mapear
-if 'a' not in df_historicos.columns:
-    print("⚠️  Columna 'a' (afluente) no encontrada")
+else:
+    print("⚠️  Columna 'a' o 'CENTRAL' no encontrada")
 
 # Renombrar 'AÑO' a 'Año' si es necesario
 if 'AÑO' in df_historicos.columns:
     df_historicos = df_historicos.rename(columns={'AÑO': 'Año'})
 
-# Las semanas ya están numeradas como 1, 2, 3, ..., 48
-semanas = [col for col in df_historicos.columns if isinstance(col, int)]
-semanas.sort()
+# Identificar columnas de semanas - pueden ser números o texto con fechas
+# Primero buscar columnas con nombres de meses (formato 'abr 1', 'may 8', etc.)
+import re
+meses = ['abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic', 'ene', 'feb', 'mar']
+semanas_cols = [col for col in df_historicos.columns 
+                if isinstance(col, str) and any(mes in col.lower() for mes in meses)]
+
+if semanas_cols:
+    # Renombrar estas columnas a números 1-48
+    rename_dict = {col: idx + 1 for idx, col in enumerate(semanas_cols[:48])}
+    df_historicos = df_historicos.rename(columns=rename_dict)
+    semanas = list(range(1, min(49, len(semanas_cols) + 1)))
+else:
+    # Si no hay columnas con meses, buscar columnas numéricas
+    semanas_cols = [col for col in df_historicos.columns if isinstance(col, int)]
+    if semanas_cols:
+        semanas = sorted(semanas_cols)
+    else:
+        semanas = []
+        print("⚠️  No se encontraron columnas de semanas")
 
 print(f"  ✓ Datos cargados: {len(df_historicos)} registros")
 print(f"  Afluentes únicos: {sorted(df_historicos['a'].dropna().unique())}")
@@ -102,6 +126,9 @@ if 'CENTRAL' in df_historicos.columns:
     columnas_id.append('CENTRAL')
 elif 'Central' in df_historicos.columns:
     columnas_id.append('Central')
+
+# Filtrar solo las columnas que existen
+columnas_id = [col for col in columnas_id if col in df_historicos.columns]
 
 df_long = df_historicos.melt(
     id_vars=columnas_id,

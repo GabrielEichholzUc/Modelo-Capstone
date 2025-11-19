@@ -13,11 +13,16 @@ import numpy as np
 import sys
 import shutil
 from datetime import datetime
+from pathlib import Path
 
-ARCHIVO_EXCEL = 'Parametros_Nuevos.xlsx'
-BACKUP_DIR = 'backups_parametros'
-ESCENARIOS_DIR = 'escenarios_montecarlo'
-TODOS_ESCENARIOS_FILE = 'escenarios_montecarlo/todos_escenarios.xlsx'
+# Obtener la ruta absoluta al directorio raíz del proyecto
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+ARCHIVO_EXCEL = PROJECT_ROOT / 'Parametros_Nuevos.xlsx'
+BACKUP_DIR = SCRIPT_DIR / 'backups_parametros'
+ESCENARIOS_DIR = SCRIPT_DIR / 'escenarios_montecarlo'
+TODOS_ESCENARIOS_FILE = ESCENARIOS_DIR / 'todos_escenarios.xlsx'
 
 def aplicar_escenario(num_escenario=None, usar_promedio=False):
     """
@@ -40,7 +45,7 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
     if usar_promedio:
         print(f"\n🎯 Usando escenario promedio...")
         # Leer el archivo del escenario promedio
-        df_escenario = pd.read_excel(f'{ESCENARIOS_DIR}/escenario_promedio.xlsx')
+        df_escenario = pd.read_excel(ESCENARIOS_DIR / 'escenario_promedio.xlsx')
         print(f"  ✓ Escenario promedio cargado")
     else:
         if num_escenario is None:
@@ -61,7 +66,7 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
             # Si no existe la hoja, intentar cargar desde archivo individual
             print(f"  ⚠ No se encontró hoja '{sheet_name}' en todos_escenarios.xlsx")
             print(f"  📂 Intentando cargar desde archivo individual...")
-            escenario_file = f'{ESCENARIOS_DIR}/escenario_{num_escenario:03d}.xlsx'
+            escenario_file = ESCENARIOS_DIR / f'escenario_{num_escenario:03d}.xlsx'
             df_escenario = pd.read_excel(escenario_file)
             print(f"  ✓ Cargado desde {escenario_file}")
     
@@ -175,7 +180,7 @@ if __name__ == '__main__':
     import os
     
     # Verificar que exista el archivo todos_escenarios.xlsx
-    if not os.path.exists(TODOS_ESCENARIOS_FILE):
+    if not TODOS_ESCENARIOS_FILE.exists():
         print(f"❌ Error: No se encuentra el archivo '{TODOS_ESCENARIOS_FILE}'")
         print(f"   Ejecuta primero: python3 simulacion_montecarlo_afluentes.py")
         sys.exit(1)
