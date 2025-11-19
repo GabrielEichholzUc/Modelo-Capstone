@@ -29,6 +29,127 @@ class ModeloLaja:
         self.A = list(range(1, 7))  # Afluentes (1:ElToro, 2:Abanico, 3:Antuco, 4:Tucapel, 5:Canecol, 6:Laja_I)
         self.K = None  # Cotas del lago (se definirá con datos)
         
+        # Definición de la Topología de Red (Origen -> Nodo -> Destino)
+        # Estructura: {'nodo': NombreDelNodoBalance, 'tipo': 'in'/'out', 'var': Variable, 'idx': Indice}
+        self.ARCOS_RED = [
+            # -------------------------------------------------------
+            # 1. NODO: CENTRAL EL TORO (Balance Restricción 3)
+            # -------------------------------------------------------
+            {'nodo': 'ElToro', 'tipo': 'in',  'var': 'qe', 'idx': 1}, # Extracción Riego del Lago
+            {'nodo': 'ElToro', 'tipo': 'in',  'var': 'qe', 'idx': 2}, # Extracción Generación del Lago
+            {'nodo': 'ElToro', 'tipo': 'out', 'var': 'qg', 'idx': 1}, # Generación El Toro
+
+            # -------------------------------------------------------
+            # 2. NODO: ABANICO (Balance Restricción 7 + 6)
+            # -------------------------------------------------------
+            {'nodo': 'Abanico', 'tipo': 'in',  'var': 'qa', 'idx': 2}, # Afluente 2
+            {'nodo': 'Abanico', 'tipo': 'in',  'var': 'qf', 'idx': None}, # Filtraciones del Lago
+            {'nodo': 'Abanico', 'tipo': 'out', 'var': 'qg', 'idx': 2}, # Gen Abanico
+            {'nodo': 'Abanico', 'tipo': 'out', 'var': 'qv', 'idx': 2}, # Vert Abanico
+
+            # -------------------------------------------------------
+            # 3. NODO: ANTUCO (Balance Restricción 8)
+            # -------------------------------------------------------
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qa', 'idx': 3}, # Afluente 3
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qg', 'idx': 1}, # Viene de El Toro
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qg', 'idx': 2}, # Viene de Abanico
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qv', 'idx': 2}, # Vertimiento Abanico
+            {'nodo': 'Antuco', 'tipo': 'out', 'var': 'qg', 'idx': 3}, # Gen Antuco
+            {'nodo': 'Antuco', 'tipo': 'out', 'var': 'qv', 'idx': 3}, # Vert Antuco
+
+            # -------------------------------------------------------
+            # 4. NODO: RIEZACO / ZANARTU (Balance Restricción 9)
+            # -------------------------------------------------------
+            {'nodo': 'RieZaco', 'tipo': 'in',  'var': 'qg', 'idx': 3}, # Viene de Antuco
+            {'nodo': 'RieZaco', 'tipo': 'in',  'var': 'qv', 'idx': 3}, # Vertimiento Antuco
+            {'nodo': 'RieZaco', 'tipo': 'out', 'var': 'qp_sum', 'idx': 1}, # Demanda Riego Canal 1 (Suma de demandantes)
+            {'nodo': 'RieZaco', 'tipo': 'out', 'var': 'qv', 'idx': 4}, # Vertimiento/Pasada hacia CLajRucue
+
+            # -------------------------------------------------------
+            # 5. NODO: CANECOL (Balance Restricción 10)
+            # -------------------------------------------------------
+            {'nodo': 'Canecol', 'tipo': 'in',  'var': 'qa', 'idx': 5}, # Afluente 5
+            {'nodo': 'Canecol', 'tipo': 'out', 'var': 'qg', 'idx': 5}, # Gen Canecol
+            {'nodo': 'Canecol', 'tipo': 'out', 'var': 'qv', 'idx': 5}, # Vert Canecol
+
+            # -------------------------------------------------------
+            # 6. NODO: CANRUCUE (Balance Restricción 11)
+            # -------------------------------------------------------
+            {'nodo': 'CanRucue', 'tipo': 'in',  'var': 'qv', 'idx': 5}, # Viene de Vert Canecol
+            {'nodo': 'CanRucue', 'tipo': 'out', 'var': 'qg', 'idx': 6}, # Gen CanRucue
+            {'nodo': 'CanRucue', 'tipo': 'out', 'var': 'qv', 'idx': 6}, # Vert CanRucue
+
+            # -------------------------------------------------------
+            # 7. NODO: CLAJRUCUE (Balance Restricción 12)
+            # -------------------------------------------------------
+            {'nodo': 'CLajRucue', 'tipo': 'in',  'var': 'qv', 'idx': 4}, # Viene de Vert RieZaco
+            {'nodo': 'CLajRucue', 'tipo': 'out', 'var': 'qg', 'idx': 7}, # Gen CLajRucue
+            {'nodo': 'CLajRucue', 'tipo': 'out', 'var': 'qv', 'idx': 7}, # Vert CLajRucue
+
+            # -------------------------------------------------------
+            # 8. NODO: RUCUE (Balance Restricción 13)
+            # -------------------------------------------------------
+            {'nodo': 'Rucue', 'tipo': 'in',  'var': 'qg', 'idx': 6}, # Viene de CanRucue
+            {'nodo': 'Rucue', 'tipo': 'in',  'var': 'qg', 'idx': 7}, # Viene de CLajRucue
+            {'nodo': 'Rucue', 'tipo': 'out', 'var': 'qg', 'idx': 8}, # Gen Rucue
+            {'nodo': 'Rucue', 'tipo': 'out', 'var': 'qv', 'idx': 8}, # Vert Rucue
+
+            # -------------------------------------------------------
+            # 9. NODO: QUILLECO (Balance Restricción 14)
+            # -------------------------------------------------------
+            {'nodo': 'Quilleco', 'tipo': 'in',  'var': 'qg', 'idx': 8}, # Viene de Rucue
+            {'nodo': 'Quilleco', 'tipo': 'in',  'var': 'qv', 'idx': 8}, # Vertimiento Rucue
+            {'nodo': 'Quilleco', 'tipo': 'out', 'var': 'qg', 'idx': 9}, # Gen Quilleco
+            {'nodo': 'Quilleco', 'tipo': 'out', 'var': 'qv', 'idx': 9}, # Vert Quilleco
+
+            # -------------------------------------------------------
+            # 10. NODO: TUCAPEL (Balance Restricción 15)
+            # -------------------------------------------------------
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qa', 'idx': 4}, # Afluente 4
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qg', 'idx': 5}, # Viene de Canecol (Gen)
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qv', 'idx': 6}, # Vert CanRucue
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qv', 'idx': 7}, # Vert CLajRucue
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qg', 'idx': 9}, # Gen Quilleco
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qv', 'idx': 9}, # Vert Quilleco
+            {'nodo': 'Tucapel', 'tipo': 'out', 'var': 'qg', 'idx': 10}, # Gen Tucapel
+            {'nodo': 'Tucapel', 'tipo': 'out', 'var': 'qv', 'idx': 10}, # Vert Tucapel
+
+            # -------------------------------------------------------
+            # 11. NODO: CANAL LAJA (Balance Restricción 16)
+            # -------------------------------------------------------
+            {'nodo': 'CanalLaja', 'tipo': 'in',  'var': 'qg', 'idx': 10}, # Viene de Tucapel
+            {'nodo': 'CanalLaja', 'tipo': 'in',  'var': 'qv', 'idx': 10}, # Vertimiento Tucapel
+            {'nodo': 'CanalLaja', 'tipo': 'out', 'var': 'qg', 'idx': 11}, # Gen Canal Laja
+            {'nodo': 'CanalLaja', 'tipo': 'out', 'var': 'qv', 'idx': 11}, # Vert Canal Laja
+
+            # -------------------------------------------------------
+            # 12. NODO: LAJA 1 (Balance Restricción 18)
+            # -------------------------------------------------------
+            {'nodo': 'Laja1', 'tipo': 'in',  'var': 'qa', 'idx': 6}, # Afluente 6
+            {'nodo': 'Laja1', 'tipo': 'in',  'var': 'qv', 'idx': 11}, # Vert Canal Laja (Pasa por Saltos)
+            {'nodo': 'Laja1', 'tipo': 'out', 'var': 'qg', 'idx': 13}, # Gen Laja 1
+            {'nodo': 'Laja1', 'tipo': 'out', 'var': 'qv', 'idx': 13}, # Vert Laja 1
+
+            # -------------------------------------------------------
+            # 13. NODO: EL DIUTO (Balance Restricción 19)
+            # -------------------------------------------------------
+            {'nodo': 'ElDiuto', 'tipo': 'in',  'var': 'qg', 'idx': 11}, # Viene de Canal Laja
+            {'nodo': 'ElDiuto', 'tipo': 'out', 'var': 'qg', 'idx': 15}, # Gen El Diuto
+            {'nodo': 'ElDiuto', 'tipo': 'out', 'var': 'qv', 'idx': 15}, # Vert El Diuto
+
+            # -------------------------------------------------------
+            # 14. NODO: RIETUCAPEL (Balance Restricción 20)
+            # -------------------------------------------------------
+            {'nodo': 'RieTucapel', 'tipo': 'in',  'var': 'qg', 'idx': 15}, # Gen El Diuto
+            {'nodo': 'RieTucapel', 'tipo': 'in',  'var': 'qv', 'idx': 15}, # Vert El Diuto
+            {'nodo': 'RieTucapel', 'tipo': 'out', 'var': 'qp_sum', 'idx': 2}, # Demanda Riego Canal 2 (Sumidero)
+        ]
+
+        # Obtener lista única de nodos de balance definidos en ARCOS_RED
+        self.NODOS_BALANCE = ['ElToro', 'Abanico', 'Antuco', 'RieZaco', 'Canecol', 
+                             'CanRucue', 'CLajRucue', 'Rucue', 'Quilleco', 'Tucapel',
+                             'CanalLaja', 'Laja1', 'ElDiuto', 'RieTucapel']
+        
         # Parámetros
         self.V_30Nov_1 = None  # Volumen al 30 Nov previo a temporada 1
         self.V_0 = None  # Volumen al inicio de la planificación
@@ -425,175 +546,126 @@ class ModeloLaja:
                             name=f"balance_ve_{u}_{w}_{t}")
         
         # ========== 5. LAJA FILTRACIONES (Central 16) ==========
+        # Nota: qg[16] representa las filtraciones que se usarán en el balance de Abanico
+        print("  5. Filtraciones del lago...")
         for t in self.T:
             for w in self.W:
                 self.model.addConstr(
                     self.qg[16, w, t] == self.qf[w, t],
                     name=f"laja_filt_{w}_{t}")
         
-        # ========== 6. ABANICO (Central 2 + Canal j=4) ==========
+        # ========== 6. RESTRICCIÓN GENÉRICA DE BALANCE DE FLUJO EN REDES ==========
+        print("  6. Balance de flujo en red...")
+        for n in self.NODOS_BALANCE:
+            for t in self.T:
+                for w in self.W:
+                    flujo_entrante = 0
+                    flujo_saliente = 0
+                    
+                    # Filtrar arcos para este nodo
+                    arcos_nodo = [a for a in self.ARCOS_RED if a['nodo'] == n]
+                    
+                    for arco in arcos_nodo:
+                        # Seleccionar la variable correcta según el tipo
+                        if arco['var'] == 'qa':
+                            valor = self.QA[arco['idx'], w, t]
+                        elif arco['var'] == 'qg':
+                            valor = self.qg[arco['idx'], w, t]
+                        elif arco['var'] == 'qv':
+                            valor = self.qv[arco['idx'], w, t]
+                        elif arco['var'] == 'qe':  # Extracciones del lago
+                            valor = self.qe[arco['idx'], w, t]
+                        elif arco['var'] == 'qf':  # Filtraciones
+                            valor = self.qf[w, t]
+                        elif arco['var'] == 'qp_sum':
+                            # Suma de todos los demandantes 'd' para el canal 'j' (idx)
+                            valor = gp.quicksum(self.qp[d, arco['idx'], w, t] for d in self.D)
+                        
+                        # Sumar al lado correcto de la ecuación
+                        if arco['tipo'] == 'in':
+                            flujo_entrante += valor
+                        else:
+                            flujo_saliente += valor
+                    
+                    # Agregar la restricción: Entradas == Salidas
+                    self.model.addConstr(flujo_entrante == flujo_saliente, name=f"Balance_{n}_{w}_{t}")
+        
+        # ========== 7. RESTRICCIÓN ESPECIAL: RIESALTOS ==========
+        # RieSaltos tiene una restricción especial: solo el demandante 3 (Saltos del Laja)
+        # puede retirar agua del canal 3, y es igual al vertimiento de Canal Laja (qv[11])
+        print("  7. Restricción especial RieSaltos...")
         for t in self.T:
             for w in self.W:
-                # Balance central Abanico
                 self.model.addConstr(
-                    self.qg[2, w, t] == self.QA[2, w, t] + self.qg[16, w, t] - self.qv[2, w, t],
-                    name=f"abanico_{w}_{t}")
-                
-                # Distribución a regantes en canal Abanico
+                    self.qp[3, 3, w, t] == self.qv[11, w, t],
+                    name=f"riesaltos_especial_{w}_{t}")
+        
+        # ========== 8. BALANCE DE DEMANDAS DE RIEGO ==========
+        print("  8. Balance de demandas de riego...")
+        for t in self.T:
+            for w in self.W:
+                for j in self.J:
+                    for d in self.D:
+                        self.model.addConstr(
+                            self.QD.get((d, j, w), 0) - self.qp[d, j, w, t] == self.deficit[d, j, w, t] - self.superavit[d, j, w, t],
+                            name=f"balance_demanda_{d}_{j}_{w}_{t}")
+        
+        # ========== 9. ACTIVACIÓN DE PENALIZACIONES POR CONVENIO (Big-M) ==========
+        print("  9. Activación de penalizaciones por convenio...")
+        for t in self.T:
+            for w in self.W:
+                # RIEZACO (Canal j=1)
+                # Primeros regantes: déficit solo si incumplimiento o alpha=1 (Abanico tiene prioridad)
                 self.model.addConstr(
-                    gp.quicksum(self.qp[d, 4, w, t] for d in self.D) == self.qg[2, w, t] + self.qv[2, w, t],
-                    name=f"abanico_canal_{w}_{t}")
+                    self.deficit[1, 1, w, t] <= self.M_bigM * (self.eta[1, 1, w, t] + self.alpha[w, t]),
+                    name=f"bigM_riezaco_1_{w}_{t}")
                 
-                # Balance demanda en canal Abanico
+                # Segundos y Saltos en RieZaco
+                for d in [2, 3]:
+                    self.model.addConstr(
+                        self.deficit[d, 1, w, t] <= self.M_bigM * self.eta[d, 1, w, t],
+                        name=f"bigM_riezaco_{d}_{w}_{t}")
+                
+                # RIETUCAPEL (Canal j=2)
+                # Primeros regantes: déficit solo si incumplimiento o alpha=1 (Abanico)
+                self.model.addConstr(
+                    self.deficit[1, 2, w, t] <= self.M_bigM * (self.eta[1, 2, w, t] + self.alpha[w, t]),
+                    name=f"bigM_rietucapel_1_{w}_{t}")
+                
+                # Segundos y Saltos en RieTucapel
+                for d in [2, 3]:
+                    self.model.addConstr(
+                        self.deficit[d, 2, w, t] <= self.M_bigM * self.eta[d, 2, w, t],
+                        name=f"bigM_rietucapel_{d}_{w}_{t}")
+                
+                # RIESALTOS (Canal j=3)
                 for d in self.D:
                     self.model.addConstr(
-                        self.QD.get((d, 4, w), 0) - self.qp[d, 4, w, t] == self.deficit[d, 4, w, t] - self.superavit[d, 4, w, t],
-                        name=f"balance_abanico_{d}_{w}_{t}")
+                        self.deficit[d, 3, w, t] <= self.M_bigM * self.eta[d, 3, w, t],
+                        name=f"bigM_riesaltos_{d}_{w}_{t}")
                 
-                # Big-M para primeros regantes en Abanico (d=1, j=4)
+                # ABANICO (Canal j=4)
+                # Primeros regantes: déficit solo si incumplimiento o NO alpha (Tucapel tiene prioridad)
                 self.model.addConstr(
                     self.deficit[1, 4, w, t] <= self.M_bigM * (1 + self.eta[1, 4, w, t] - self.alpha[w, t]),
                     name=f"bigM_abanico_1_{w}_{t}")
                 
-                # Para segundos y emergencia en Abanico
+                # Segundos y Saltos en Abanico
                 for d in [2, 3]:
                     self.model.addConstr(
                         self.deficit[d, 4, w, t] <= self.M_bigM * self.eta[d, 4, w, t],
                         name=f"bigM_abanico_{d}_{w}_{t}")
         
-        # ========== 7. ANTUCO (Central 3) ==========
-        for t in self.T:
-            for w in self.W:
-                self.model.addConstr(
-                    self.qg[3, w, t] == self.QA[3, w, t] + self.qg[1, w, t] + self.qg[2, w, t] + self.qv[2, w, t] - self.qv[3, w, t],
-                    name=f"antuco_{w}_{t}")
-        
-        # ========== 8. RIEZACO (Central 4 - Punto j=1) ==========
-        for t in self.T:
-            for w in self.W:
-                self.model.addConstr(
-                    gp.quicksum(self.qp[d, 1, w, t] for d in self.D) == self.qg[3, w, t] + self.qv[3, w, t] - self.qv[4, w, t],
-                    name=f"riezaco_disp_{w}_{t}")
-                
-                for d in self.D:
-                    self.model.addConstr(
-                        self.QD.get((d, 1, w), 0) - self.qp[d, 1, w, t] == self.deficit[d, 1, w, t] - self.superavit[d, 1, w, t],
-                        name=f"balance_riezaco_{d}_{w}_{t}")
-                
-                # Para primeros regantes (d=1): déficit solo si incumplimiento o alpha=1 (Abanico)
-                self.model.addConstr(
-                    self.deficit[1, 1, w, t] <= self.M_bigM * (self.eta[1, 1, w, t] + self.alpha[w, t]),
-                    name=f"bigM_riezaco_1_{w}_{t}")
-                
-                # Para segundos y emergencia
-                for d in [2, 3]:
-                    self.model.addConstr(
-                        self.deficit[d, 1, w, t] <= self.M_bigM * self.eta[d, 1, w, t],
-                        name=f"bigM_riezaco_{d}_{w}_{t}")
-        
-        # ========== 9-14. CENTRALES INTERMEDIAS ==========
-        for t in self.T:
-            for w in self.W:
-                # 9. Canecol
-                self.model.addConstr(
-                    self.qg[5, w, t] == self.QA[5, w, t] - self.qv[5, w, t],
-                    name=f"canecol_{w}_{t}")
-                
-                # 10. Canrucue
-                self.model.addConstr(
-                    self.qg[6, w, t] == self.qv[5, w, t] - self.qv[6, w, t],
-                    name=f"canrucue_{w}_{t}")
-                
-                # 11. Clajrucue
-                self.model.addConstr(
-                    self.qg[7, w, t] == self.qv[4, w, t] - self.qv[7, w, t],
-                    name=f"clajrucue_{w}_{t}")
-                
-                # 12. Rucue
-                self.model.addConstr(
-                    self.qg[8, w, t] == self.qg[6, w, t] + self.qg[7, w, t] - self.qv[8, w, t],
-                    name=f"rucue_{w}_{t}")
-                
-                # 13. Quilleco
-                self.model.addConstr(
-                    self.qg[9, w, t] == self.qg[8, w, t] + self.qv[8, w, t] - self.qv[9, w, t],
-                    name=f"quilleco_{w}_{t}")
-                
-                # 14. Tucapel
-                self.model.addConstr(
-                    self.qg[10, w, t] == self.qg[5, w, t] + self.qv[6, w, t] + self.qv[7, w, t] + self.qg[9, w, t] + self.qv[9, w, t] + self.QA[4, w, t] - self.qv[10, w, t],
-                    name=f"tucapel_{w}_{t}")
-        
-        # ========== 15. CANAL LAJA (Central 11) ==========
-        for t in self.T:
-            for w in self.W:
-                self.model.addConstr(
-                    self.qg[11, w, t] == self.qg[10, w, t] + self.qv[10, w, t] - self.qv[11, w, t],
-                    name=f"canal_laja_{w}_{t}")
-        
-        # ========== 16. RIESALTOS (Central 12 - Punto j=3) ==========
-        for t in self.T:
-            for w in self.W:
-                self.model.addConstr(
-                    self.qp[3, 3, w, t] == self.qv[11, w, t],
-                    name=f"riesaltos_disp_{w}_{t}")
-                
-                for d in self.D:
-                    self.model.addConstr(
-                        self.QD.get((d, 3, w), 0) - self.qp[d, 3, w, t] == self.deficit[d, 3, w, t] - self.superavit[d, 3, w, t],
-                        name=f"balance_riesaltos_{d}_{w}_{t}")
-                    
-                    self.model.addConstr(
-                        self.deficit[d, 3, w, t] <= self.M_bigM * self.eta[d, 3, w, t],
-                        name=f"bigM_riesaltos_{d}_{w}_{t}")
-        
-        # ========== 17. LAJA 1 (Central 13) ==========
-        for t in self.T:
-            for w in self.W:
-                # Si existe afluente 6, incluirlo; si no, solo usar qv[11]
-                afluente_6 = self.QA.get((6, w, t), 0)  # 0 si no existe
-                self.model.addConstr(
-                    self.qg[13, w, t] + self.qv[13, w, t] == self.qv[11, w, t] + afluente_6,
-                    name=f"laja1_{w}_{t}")
-        
-        # ========== 18. EL DIUTO (Central 15) ==========
-        for t in self.T:
-            for w in self.W:
-                self.model.addConstr(
-                    self.qg[15, w, t] == self.qg[11, w, t] - self.qv[15, w, t],
-                    name=f"el_diuto_{w}_{t}")
-        
-        # ========== 19. RIETUCAPEL (Central 14 - Punto j=2) ==========
-        for t in self.T:
-            for w in self.W:
-                self.model.addConstr(
-                    gp.quicksum(self.qp[d, 2, w, t] for d in self.D) == self.qg[15, w, t] + self.qv[15, w, t],
-                    name=f"rietucapel_disp_{w}_{t}")
-                
-                for d in self.D:
-                    self.model.addConstr(
-                        self.QD.get((d, 2, w), 0) - self.qp[d, 2, w, t] == self.deficit[d, 2, w, t] - self.superavit[d, 2, w, t],
-                        name=f"balance_rietucapel_{d}_{w}_{t}")
-                
-                # Para primeros regantes (d=1): déficit solo si incumplimiento o alpha=1 (Abanico)
-                self.model.addConstr(
-                    self.deficit[1, 2, w, t] <= self.M_bigM * (self.eta[1, 2, w, t] + self.alpha[w, t]),
-                    name=f"bigM_rietucapel_1_{w}_{t}")
-                
-                # Para segundos y emergencia
-                for d in [2, 3]:
-                    self.model.addConstr(
-                        self.deficit[d, 2, w, t] <= self.M_bigM * self.eta[d, 2, w, t],
-                        name=f"bigM_rietucapel_{d}_{w}_{t}")
-        
-        # ========== 20. VERTIMIENTO EL TORO = 0 ==========
+        # ========== 10. VERTIMIENTO EL TORO = 0 ==========
+        print("  10. Vertimiento El Toro...")
         for t in self.T:
             for w in self.W:
                 self.model.addConstr(
                     self.qv[1, w, t] == 0,
                     name=f"no_vert_eltoro_{w}_{t}")
         
-        # ========== 21. CAPACIDADES ==========
+        # ========== 11. CAPACIDADES ==========
+        print("  11. Capacidades de generación...")
         for t in self.T:
             for i in self.I:
                 for w in self.W:
@@ -601,14 +673,16 @@ class ModeloLaja:
                         self.qg[i, w, t] <= self.gamma[i],
                         name=f"cap_max_{i}_{w}_{t}")
         
-        # ========== 22. VOLUMEN MÍNIMO DEL LAGO ==========
+        # ========== 12. VOLUMEN MÍNIMO DEL LAGO ==========
+        print("  12. Volumen mínimo del lago...")
         for t in self.T:
             for w in self.W:
                 self.model.addConstr(
                     self.V[w, t] >= self.V_min - self.M_bigM * self.beta[w, t],
                     name=f"vol_min_{w}_{t}")
         
-        # ========== 23. DEFINICIÓN DE ENERGÍA GENERADA POR CENTRAL ==========
+        # ========== 13. DEFINICIÓN DE ENERGÍA GENERADA POR CENTRAL ==========
+        print("  13. Definición de energía generada...")
         # GEN[i,t] = Σ_w (qg[i,w,t] × ρ[i] × FS[w] / (3600 × 1000)) [GWh]
         # Unidades: [m³/s] × [MW/(m³/s)] × [s] / 3,600,000 = [MW·s] / 3,600,000 = [GWh]
         # Nota: ρ está en MW/(m³/s), por lo que qg×ρ×FS da MW·s

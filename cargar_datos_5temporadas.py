@@ -6,7 +6,7 @@ Versión para 5 temporadas
 import pandas as pd
 import numpy as np
 
-def cargar_nombres_centrales(archivo_excel="Parametros_Nuevos.xlsx"):
+def cargar_nombres_centrales(archivo_excel="Parametros_Finales.xlsx"):
     """
     Carga los nombres de las centrales desde la hoja Índices
     
@@ -33,7 +33,7 @@ def cargar_nombres_centrales(archivo_excel="Parametros_Nuevos.xlsx"):
     
     return nombres
 
-def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"): 
+def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"): 
     """
     Carga todos los parámetros desde el archivo Excel para modelo de 5 temporadas
     
@@ -41,7 +41,7 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
         dict: Diccionario con todos los parámetros del modelo
     """
     print("\n" + "="*60)
-    print("CARGANDO PARÁMETROS DESDE EXCEL (5 TEMPORADAS)")
+    print("CARGANDO PARÁMETROS DESDE EXCEL")
     print("="*60 + "\n")
     
     parametros = {}
@@ -79,9 +79,9 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
     print(f"  nu (umbral V_MIN/V_MAX) = {parametros.get('nu', 'N/A')} GWh")
     print(f"  M (Big-M) = {parametros.get('M', 'N/A')}")
     
-    # 2. f_k (Filtraciones por zona) - NOMBRE ACTUALIZADO
+    # 2. FC_k (Filtraciones por zona)
     print("\nCargando filtraciones f_k...")
-    df_fk = pd.read_excel(archivo_excel, sheet_name='f_k')
+    df_fk = pd.read_excel(archivo_excel, sheet_name='FC_k')
     parametros['FC'] = {}  # Se mantiene FC internamente para compatibilidad
     
     if 'k' in df_fk.columns and 'f_k' in df_fk.columns:
@@ -97,9 +97,9 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
     print(f"  Cargadas {len(parametros['FC'])} zonas")
     print(f"  Rango zonas: {min(parametros['FC'].keys())} - {max(parametros['FC'].keys())}")
     
-    # 3. v_k (Volumen por zona) - NOMBRE ACTUALIZADO
+    # 3. VC_k (Volumen por zona)
     print("\nCargando volúmenes v_k...")
-    df_vk = pd.read_excel(archivo_excel, sheet_name='v_k')
+    df_vk = pd.read_excel(archivo_excel, sheet_name='VC_k')
     parametros['VC'] = {}  # Se mantiene VC internamente para compatibilidad
     
     if 'k' in df_vk.columns and 'v_k' in df_vk.columns:
@@ -115,33 +115,28 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
     print(f"  Cargados {len(parametros['VC'])} volúmenes")
     print(f"  Rango: {min(parametros['VC'].values()):.2f} - {max(parametros['VC'].values()):.2f} hm³")
     
-    # 4. vr_k y vg_k (Volumen por uso y zona) - NOMBRES ACTUALIZADOS
+    # 4. VUC_k,u (Volumen por uso y zona) - ahora en una sola hoja
     print("\nCargando volúmenes por uso vr_k y vg_k...")
-    df_vrk = pd.read_excel(archivo_excel, sheet_name='vr_k')
-    df_vgk = pd.read_excel(archivo_excel, sheet_name='vg_k')
+    df_vuc = pd.read_excel(archivo_excel, sheet_name='VUC_k,u')
     parametros['VUC'] = {}
     
-    # vr_k (Riego, u=1)
-    if 'k' in df_vrk.columns and 'vr_k' in df_vrk.columns:
-        for _, row in df_vrk.iterrows():
+    # Asumiendo formato: k | vr_k (u=1) | vg_k (u=2)
+    if 'k' in df_vuc.columns:
+        for _, row in df_vuc.iterrows():
             k = int(row['k'])
-            parametros['VUC'][(1, k)] = float(row['vr_k'])
-    elif df_vrk.shape[1] >= 2:
-        for _, row in df_vrk.iterrows():
+            if 'vr_k' in df_vuc.columns:
+                parametros['VUC'][(1, k)] = float(row['vr_k'])
+            if 'vg_k' in df_vuc.columns:
+                parametros['VUC'][(2, k)] = float(row['vg_k'])
+    else:
+        # Formato por columnas: primera col=k, segunda col=vr_k, tercera col=vg_k
+        for _, row in df_vuc.iterrows():
             if pd.notna(row.iloc[0]):
                 k = int(row.iloc[0])
-                parametros['VUC'][(1, k)] = float(row.iloc[1])
-    
-    # vg_k (Generación, u=2)
-    if 'k' in df_vgk.columns and 'vg_k' in df_vgk.columns:
-        for _, row in df_vgk.iterrows():
-            k = int(row['k'])
-            parametros['VUC'][(2, k)] = float(row['vg_k'])
-    elif df_vgk.shape[1] >= 2:
-        for _, row in df_vgk.iterrows():
-            if pd.notna(row.iloc[0]):
-                k = int(row.iloc[0])
-                parametros['VUC'][(2, k)] = float(row.iloc[1])
+                if df_vuc.shape[1] >= 2 and pd.notna(row.iloc[1]):
+                    parametros['VUC'][(1, k)] = float(row.iloc[1])
+                if df_vuc.shape[1] >= 3 and pd.notna(row.iloc[2]):
+                    parametros['VUC'][(2, k)] = float(row.iloc[2])
     
     print(f"  Cargados {len(parametros['VUC'])} volúmenes de uso")
     

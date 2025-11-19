@@ -14,7 +14,7 @@ import sys
 import shutil
 from datetime import datetime
 
-ARCHIVO_EXCEL = 'Parametros_Finales.xlsx'
+ARCHIVO_EXCEL = '../Parametros_Finales.xlsx'
 BACKUP_DIR = 'backups_parametros'
 ESCENARIOS_DIR = 'escenarios_montecarlo'
 TODOS_ESCENARIOS_FILE = 'escenarios_montecarlo/todos_escenarios.xlsx'
@@ -95,8 +95,8 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
     fila_header = ['t', 'a'] + [float(i) for i in range(1, 49)]
     filas_qa.append(fila_header)
     
-    # Para cada temporada
-    for t in range(1, 6):
+    # Para cada temporada (10 temporadas)
+    for t in range(1, 11):
         # Obtener datos de esta temporada del escenario
         df_temp = df_escenario[df_escenario['Temporada'] == t].copy()
         df_temp = df_temp.sort_values('Afluente')
@@ -106,8 +106,8 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
             fila_afluente = df_temp[df_temp['Afluente'] == a]
             
             if len(fila_afluente) > 0:
-                # Extraer valores de semanas (columnas Semana_1, Semana_2, ..., Semana_48)
-                semanas_cols = [f'Semana_{w}' for w in range(1, 49)]
+                # Extraer valores de semanas (columnas son números: 1, 2, ..., 48)
+                semanas_cols = list(range(1, 49))
                 valores = fila_afluente[semanas_cols].values[0].tolist()
             else:
                 # Si no hay datos, poner ceros

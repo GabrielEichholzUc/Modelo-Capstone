@@ -30,7 +30,7 @@ except ImportError:
 # CONFIGURACIÓN
 # ============================================================
 
-ARCHIVO_EXCEL = 'Parametros_Finales.xlsx'
+ARCHIVO_EXCEL = '../Parametros_Finales.xlsx'
 HOJA_HISTORICOS = 'Caudales historicos'
 OUTPUT_DIR = 'escenarios_montecarlo'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -75,6 +75,9 @@ df_long = df_historicos.melt(
     value_name='Caudal_m3s'
 )
 
+# Asegurar que Semana sea entero
+df_long['Semana'] = df_long['Semana'].astype(int)
+
 print(f"  ✓ Datos transformados: {len(df_long)} observaciones")
 print(f"  Ejemplo:\n{df_long.head(3)}")
 
@@ -109,7 +112,7 @@ for a in sorted(stats_df['a'].unique()):
 
 def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
     """
-    Genera un escenario sintético de caudales para 5 temporadas
+    Genera un escenario sintético de caudales para 10 temporadas
     
     Parámetros:
     -----------
@@ -123,12 +126,16 @@ def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
     """
     escenario = {}
     
+    # Crear índice para acceso rápido (mucho más eficiente que filtrar cada vez)
+    df_grouped = df_historicos.groupby(['a', 'Semana'])['Caudal_m3s'].apply(lambda x: x.values).to_dict()
+    stats_grouped = stats_df.set_index(['a', 'Semana']).to_dict('index')
+    
     for a in range(1, 7):  # 6 afluentes
         for w in range(1, 49):  # 48 semanas
-            for t in range(1, 6):  # 5 temporadas
+            for t in range(1, 11):  # 10 temporadas
                 
                 # Obtener datos históricos para este afluente y semana
-                datos_hist = df_long[(df_long['a'] == a) & (df_long['Semana'] == w)]['Caudal_m3s'].values
+                datos_hist = df_grouped.get((a, w), np.array([]))
                 
                 if len(datos_hist) == 0:
                     # Si no hay datos, usar 0
@@ -142,10 +149,10 @@ def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
                 
                 elif metodo == 'normal':
                     # Distribución normal con media y std empíricos
-                    stats_row = stats_df[(stats_df['a'] == a) & (stats_df['Semana'] == w)]
-                    if len(stats_row) > 0:
-                        mu = stats_row['media'].values[0]
-                        sigma = stats_row['std'].values[0]
+                    stats_info = stats_grouped.get((a, w), None)
+                    if stats_info is not None:
+                        mu = stats_info['media']
+                        sigma = stats_info['std']
                         if pd.isna(sigma) or sigma == 0:
                             sigma = mu * 0.1  # 10% de CV si no hay std
                         valor = np.random.normal(mu, sigma)
@@ -168,9 +175,9 @@ def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
                 elif metodo == 'bootstrap':
                     # Bootstrap con perturbación gaussiana
                     valor_base = np.random.choice(datos_hist)
-                    stats_row = stats_df[(stats_df['a'] == a) & (stats_df['Semana'] == w)]
-                    if len(stats_row) > 0:
-                        sigma = stats_row['std'].values[0] * 0.3  # 30% de la std como ruido
+                    stats_info = stats_grouped.get((a, w), None)
+                    if stats_info is not None:
+                        sigma = stats_info['std'] * 0.3  # 30% de la std como ruido
                         if not pd.isna(sigma):
                             perturbacion = np.random.normal(0, sigma)
                             valor = valor_base + perturbacion
@@ -237,7 +244,7 @@ for n, escenario in enumerate(escenarios_ordenados):
     # Crear DataFrame para este escenario en el formato del modelo
     datos_escenario = []
     
-    for t in range(1, 6):  # 5 temporadas
+    for t in range(1, 11):  # 10 temporadas
         for a in range(1, 7):  # 6 afluentes
             fila = {'Afluente': a, 'Temporada': t}
             for w in range(1, 49):  # 48 semanas
@@ -259,7 +266,7 @@ print(f"\n💾 Guardando todos los escenarios en un archivo consolidado...")
 with pd.ExcelWriter(f'{OUTPUT_DIR}/todos_escenarios.xlsx') as writer:
     for n, escenario in enumerate(escenarios_ordenados):  # TODOS los escenarios (100)
         datos_escenario = []
-        for t in range(1, 6):
+        for t in range(1, 11):  # 10 temporadas
             for a in range(1, 7):
                 fila = {'Afluente': a, 'Temporada': t}
                 for w in range(1, 49):
@@ -363,13 +370,13 @@ print(f"\n💾 Creando escenario promedio para usar en el modelo...")
 escenario_promedio = {}
 for a in range(1, 7):
     for w in range(1, 49):
-        for t in range(1, 6):
+        for t in range(1, 11):  # 10 temporadas
             valores = [escenario[(a, w, t)] for escenario in escenarios_ordenados]
             escenario_promedio[(a, w, t)] = np.mean(valores)
 
 # Guardar en formato compatible con el modelo
 datos_promedio = []
-for t in range(1, 6):
+for t in range(1, 11):  # 10 temporadas
     for a in range(1, 7):
         fila = {'Afluente': a, 'Temporada': t}
         for w in range(1, 49):
@@ -406,5 +413,5 @@ print(f"  Escenarios: {NUM_ESCENARIOS}")
 print(f"  Semilla: {SEED}")
 print(f"  Afluentes: 6")
 print(f"  Semanas: 48")
-print(f"  Temporadas: 5")
+print(f"  Temporadas: 10")
 print("\n" + "=" * 70)
