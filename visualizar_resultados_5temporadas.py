@@ -82,6 +82,227 @@ nombres_demandantes = {1: 'Primeros Regantes', 2: 'Segundos Regantes', 3: 'Salto
 print(f"✓ Datos cargados: {len(volumenes)} registros de volúmenes, {len(riego)} de riego")
 
 # ============================================================
+# DASHBOARD RESUMEN - GRÁFICO 0
+# ============================================================
+
+print("\n📊 Generando DASHBOARD RESUMEN (Gráfico 0)...")
+
+fig = plt.figure(figsize=(24, 16))
+gs = fig.add_gridspec(4, 3, hspace=0.35, wspace=0.3, 
+                      left=0.08, right=0.95, top=0.94, bottom=0.05)
+
+# Colores por temporada
+colors_temp = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+nombres_temp = {1: 'Temp 1 (Abr-Jul)', 2: 'Temp 2 (Ago-Oct)', 
+                3: 'Temp 3 (Nov-Ene)', 4: 'Temp 4 (Feb-Mar)', 5: 'Temp 5 (Abr-Jul)'}
+
+# ========== PANEL 1: VOLUMEN LAGO (todas las temporadas) ==========
+ax1 = fig.add_subplot(gs[0, :])
+for t in T:
+    data_t = volumenes[volumenes['Temporada'] == t]
+    x_offset = (t - 1) * 48
+    semanas = data_t['Semana'].values + x_offset
+    ax1.plot(semanas, data_t['Volumen_hm3'], color=colors_temp[t-1], 
+             linewidth=2.5, label=nombres_temp[t], alpha=0.9)
+
+ax1.axhline(y=V_MIN, color='red', linestyle='--', linewidth=2, alpha=0.7, label=f'V_MIN ({V_MIN} hm³)')
+ax1.axhline(y=V_MAX, color='green', linestyle='--', linewidth=2, alpha=0.7, label=f'V_MAX ({V_MAX} hm³)')
+
+for t in range(1, 6):
+    ax1.axvline(x=t*48, color='gray', linestyle=':', alpha=0.4)
+
+ax1.set_xlabel('Semanas (Agrupadas por Temporada)', fontweight='bold', fontsize=12)
+ax1.set_ylabel('Volumen (hm³)', fontweight='bold', fontsize=12)
+ax1.set_title('📊 VOLUMEN DEL LAGO LAJA - 5 TEMPORADAS', 
+              fontweight='bold', fontsize=14, pad=15)
+ax1.legend(loc='best', framealpha=0.95, fontsize=10)
+ax1.grid(True, alpha=0.3)
+
+# ========== PANEL 2: GENERACIÓN POR CENTRAL ==========
+ax2 = fig.add_subplot(gs[1, 0])
+gen_por_central = energia_total.groupby('Central')['Energia_GWh'].sum()
+centrales_top = gen_por_central.sort_values(ascending=False).head(8)
+
+bars = ax2.barh(range(len(centrales_top)), centrales_top.values, 
+                color=plt.cm.viridis(np.linspace(0.3, 0.9, len(centrales_top))))
+ax2.set_yticks(range(len(centrales_top)))
+ax2.set_yticklabels([f'Central {int(c)}' for c in centrales_top.index], fontsize=9)
+ax2.set_xlabel('Generación Total (GWh)', fontweight='bold', fontsize=10)
+ax2.set_title('⚡ GENERACIÓN POR CENTRAL', fontweight='bold', fontsize=11)
+ax2.grid(True, axis='x', alpha=0.3)
+
+for i, (idx, val) in enumerate(centrales_top.items()):
+    ax2.text(val + max(centrales_top.values)*0.01, i, f'{val:.0f}', 
+             va='center', fontsize=9, fontweight='bold')
+
+# ========== PANEL 3: RIEGO POR CANAL ==========
+ax3 = fig.add_subplot(gs[1, 1])
+riego_por_canal = riego.groupby('Canal')['Provisto_m3s'].sum()
+canal_nombres = [nombres_canales.get(int(c.split('_')[1]), f'Canal {c}') 
+                 if '_' in str(c) else nombres_canales.get(c, f'Canal {c}') 
+                 for c in riego_por_canal.index]
+
+bars = ax3.bar(range(len(riego_por_canal)), riego_por_canal.values,
+               color=['#2E86AB', '#A23B72', '#F18F01', '#C73E1D'])
+ax3.set_xticks(range(len(riego_por_canal)))
+ax3.set_xticklabels(canal_nombres, rotation=45, ha='right', fontsize=9)
+ax3.set_ylabel('Provisión Total (m³/s)', fontweight='bold', fontsize=10)
+ax3.set_title('💧 PROVISIÓN DE RIEGO POR CANAL', fontweight='bold', fontsize=11)
+ax3.grid(True, axis='y', alpha=0.3)
+
+for i, val in enumerate(riego_por_canal.values):
+    ax3.text(i, val + max(riego_por_canal.values)*0.02, f'{val:.0f}', 
+             ha='center', fontsize=9, fontweight='bold')
+
+# ========== PANEL 4: CUMPLIMIENTO DEMANDA (Déficit) ==========
+ax4 = fig.add_subplot(gs[1, 2])
+# Calcular cumplimiento como (Provisto / Demanda) * 100
+riego_canal = riego.groupby('Canal').agg({
+    'Provisto_m3s': 'sum',
+    'Demanda_m3s': 'sum'
+})
+riego_canal['Cumplimiento'] = (riego_canal['Provisto_m3s'] / riego_canal['Demanda_m3s']) * 100
+riego_canal = riego_canal.fillna(0)
+
+canales_labels = [nombres_canales.get(int(c.split('_')[1]), f'Canal {c}') 
+                  if '_' in str(c) else nombres_canales.get(c, f'Canal {c}') 
+                  for c in riego_canal.index]
+
+x_pos = np.arange(len(riego_canal))
+bars = ax4.bar(x_pos, riego_canal['Cumplimiento'].values, 
+               color=['#2E86AB', '#A23B72', '#F18F01', '#C73E1D'], alpha=0.7)
+
+ax4.axhline(y=100, color='green', linestyle='--', linewidth=2, alpha=0.5, label='100% Cumplimiento')
+ax4.set_xticks(x_pos)
+ax4.set_xticklabels(canales_labels, rotation=45, ha='right', fontsize=9)
+ax4.set_ylabel('Cumplimiento (%)', fontweight='bold', fontsize=10)
+ax4.set_title('📈 CUMPLIMIENTO DEMANDA RIEGO', fontweight='bold', fontsize=11)
+ax4.set_ylim(0, 110)
+ax4.legend(fontsize=8)
+ax4.grid(True, axis='y', alpha=0.3)
+
+for i, val in enumerate(riego_canal['Cumplimiento'].values):
+    ax4.text(i, val + 2, f'{val:.1f}%', ha='center', fontsize=8, fontweight='bold')
+
+# ========== PANEL 5: ENERGÍA POR TEMPORADA ==========
+ax5 = fig.add_subplot(gs[2, 0])
+energia_temp = energia_total.groupby('Temporada')['Energia_GWh'].sum()
+bars = ax5.bar(energia_temp.index, energia_temp.values, 
+               color=colors_temp, alpha=0.8, edgecolor='black', linewidth=1.5)
+ax5.set_xlabel('Temporada', fontweight='bold', fontsize=10)
+ax5.set_ylabel('Energía Total (GWh)', fontweight='bold', fontsize=10)
+ax5.set_title('⚡ ENERGÍA GENERADA POR TEMPORADA', fontweight='bold', fontsize=11)
+ax5.set_xticks(T)
+ax5.set_xticklabels([f'T{t}' for t in T])
+ax5.grid(True, axis='y', alpha=0.3)
+
+for i, (idx, val) in enumerate(energia_temp.items()):
+    ax5.text(idx, val + max(energia_temp.values)*0.02, f'{val:.0f}', 
+             ha='center', fontsize=9, fontweight='bold')
+
+# ========== PANEL 6: FILTRACIONES (si existen) ==========
+ax6 = fig.add_subplot(gs[2, 1])
+if filtraciones is not None and len(filtraciones) > 0:
+    filt_temp = filtraciones.groupby('Temporada')['Filtracion_m3s'].mean()
+    bars = ax6.bar(filt_temp.index, filt_temp.values, 
+                   color='#FF6B6B', alpha=0.7, edgecolor='darkred', linewidth=1.5)
+    ax6.set_xlabel('Temporada', fontweight='bold', fontsize=10)
+    ax6.set_ylabel('Filtración Promedio (m³/s)', fontweight='bold', fontsize=10)
+    ax6.set_title('💦 FILTRACIONES PROMEDIO', fontweight='bold', fontsize=11)
+    ax6.set_xticks(T)
+    ax6.set_xticklabels([f'T{t}' for t in T])
+    ax6.grid(True, axis='y', alpha=0.3)
+    
+    for i, (idx, val) in enumerate(filt_temp.items()):
+        ax6.text(idx, val + max(filt_temp.values)*0.02, f'{val:.2f}', 
+                 ha='center', fontsize=9, fontweight='bold')
+else:
+    ax6.text(0.5, 0.5, 'Sin datos de\nfiltraciones', 
+             ha='center', va='center', fontsize=14, color='gray',
+             transform=ax6.transAxes)
+    ax6.set_title('💦 FILTRACIONES', fontweight='bold', fontsize=11)
+    ax6.axis('off')
+
+# ========== PANEL 7: ZONAS PHI ACTIVADAS (si existen) ==========
+ax7 = fig.add_subplot(gs[2, 2])
+if phi_zonas is not None and len(phi_zonas) > 0:
+    zonas_activas = phi_zonas[phi_zonas['Phi'] > 0.5].groupby('Zona')['Phi'].count()
+    if len(zonas_activas) > 0:
+        bars = ax7.bar(zonas_activas.index, zonas_activas.values, 
+                       color='#4ECDC4', alpha=0.7, edgecolor='teal', linewidth=1.5)
+        ax7.set_xlabel('Zona k', fontweight='bold', fontsize=10)
+        ax7.set_ylabel('Veces Activada', fontweight='bold', fontsize=10)
+        ax7.set_title('🔵 ZONAS DE VOLUMEN ACTIVAS', fontweight='bold', fontsize=11)
+        ax7.grid(True, axis='y', alpha=0.3)
+    else:
+        ax7.text(0.5, 0.5, 'Ninguna zona\nactivada', 
+                 ha='center', va='center', fontsize=14, color='gray',
+                 transform=ax7.transAxes)
+        ax7.set_title('🔵 ZONAS ACTIVAS', fontweight='bold', fontsize=11)
+        ax7.axis('off')
+else:
+    ax7.text(0.5, 0.5, 'Sin datos de\nzonas φ', 
+             ha='center', va='center', fontsize=14, color='gray',
+             transform=ax7.transAxes)
+    ax7.set_title('🔵 ZONAS ACTIVAS', fontweight='bold', fontsize=11)
+    ax7.axis('off')
+
+# ========== PANEL 8: INDICADORES CLAVE ==========
+ax8 = fig.add_subplot(gs[3, :])
+ax8.axis('off')
+
+# Calcular KPIs
+energia_total_val = energia_total['Energia_GWh'].sum()
+cumplimiento_promedio = (riego['Provisto_m3s'].sum() / riego['Demanda_m3s'].sum()) * 100
+vol_min_violaciones = len(volumenes[volumenes['Volumen_hm3'] < V_MIN])
+vol_max_violaciones = len(volumenes[volumenes['Volumen_hm3'] > V_MAX])
+riego_total = riego['Provisto_m3s'].sum()
+gen_max_central = energia_total.groupby('Central')['Energia_GWh'].sum().max()
+central_max_idx = energia_total.groupby('Central')['Energia_GWh'].sum().idxmax()
+central_max = f"Central {int(central_max_idx)}"
+
+# Crear tabla de KPIs
+kpi_data = [
+    ['⚡ ENERGÍA TOTAL', f'{energia_total_val:.2f} GWh', '🏆'],
+    ['💧 RIEGO TOTAL', f'{riego_total:.0f} m³/s', '💧'],
+    ['📊 CUMPLIMIENTO α', f'{cumplimiento_promedio:.1f}%', '✅' if cumplimiento_promedio >= 95 else '⚠️'],
+    ['📉 Violaciones V_MIN', f'{vol_min_violaciones} semanas', '🔴' if vol_min_violaciones > 0 else '✅'],
+    ['📈 Violaciones V_MAX', f'{vol_max_violaciones} semanas', '🔴' if vol_max_violaciones > 0 else '✅'],
+    ['⭐ Central Top', f'{central_max}: {gen_max_central:.0f} GWh', '🌟']
+]
+
+# Dibujar tabla estilizada
+table_y = 0.8
+for i, (label, value, icon) in enumerate(kpi_data):
+    x_pos = (i % 3) / 3 + 0.05
+    y_pos = table_y - (i // 3) * 0.35
+    
+    # Caja de fondo
+    box_color = '#E8F4F8' if i % 2 == 0 else '#F0F0F0'
+    rect = plt.Rectangle((x_pos, y_pos - 0.12), 0.28, 0.18, 
+                         facecolor=box_color, edgecolor='#333', 
+                         linewidth=2, transform=ax8.transAxes, 
+                         zorder=1, alpha=0.8)
+    ax8.add_patch(rect)
+    
+    # Texto
+    ax8.text(x_pos + 0.02, y_pos - 0.02, icon, fontsize=24, 
+             transform=ax8.transAxes, va='center', ha='left')
+    ax8.text(x_pos + 0.06, y_pos - 0.02, label, fontsize=11, 
+             fontweight='bold', transform=ax8.transAxes, va='center', ha='left')
+    ax8.text(x_pos + 0.14, y_pos - 0.08, value, fontsize=13, 
+             fontweight='bold', color='#1f77b4', transform=ax8.transAxes, 
+             va='center', ha='center')
+
+# Título del dashboard
+fig.suptitle('🎯 DASHBOARD RESUMEN - MODELO OPTIMIZACIÓN LAGO LAJA', 
+             fontsize=18, fontweight='bold', y=0.98)
+
+plt.savefig(f'{output_dir}/0_dashboard_resumen.png', dpi=300, bbox_inches='tight')
+print(f"  ✓ Guardado: {output_dir}/0_dashboard_resumen.png")
+plt.close()
+
+# ============================================================
 # GRÁFICO 1: EVOLUCIÓN V[w,t] - TODAS LAS TEMPORADAS JUNTAS
 # ============================================================
 
