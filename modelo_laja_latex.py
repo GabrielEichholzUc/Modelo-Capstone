@@ -29,6 +29,96 @@ class ModeloLajaLatex:
         self.A = list(range(1, 7))  # Afluentes (1:ElToro, 2:Abanico, 3:Antuco, 4:Tucapel, 5:Canecol, 6:Laja_I)
         self.K = None  # Zonas de linealización (se definirá con datos)
         
+        # Definición de la Topología de Red para Balance de Masa Genérico
+        self.ARCOS_RED = [
+            # 1. NODO: CENTRAL EL TORO
+            {'nodo': 'ElToro', 'tipo': 'in',  'var': 'qer', 'idx': None},
+            {'nodo': 'ElToro', 'tipo': 'in',  'var': 'qeg', 'idx': None},
+            {'nodo': 'ElToro', 'tipo': 'out', 'var': 'qg', 'idx': 1},
+            
+            # 2. NODO: ABANICO
+            {'nodo': 'Abanico', 'tipo': 'in',  'var': 'qa', 'idx': 2},
+            {'nodo': 'Abanico', 'tipo': 'in',  'var': 'qf', 'idx': None},
+            {'nodo': 'Abanico', 'tipo': 'out', 'var': 'qg', 'idx': 2},
+            {'nodo': 'Abanico', 'tipo': 'out', 'var': 'qv', 'idx': 2},
+            
+            # 3. NODO: ANTUCO
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qa', 'idx': 3},
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qg', 'idx': 1},
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qg', 'idx': 2},
+            {'nodo': 'Antuco', 'tipo': 'in',  'var': 'qv', 'idx': 2},
+            {'nodo': 'Antuco', 'tipo': 'out', 'var': 'qg', 'idx': 3},
+            {'nodo': 'Antuco', 'tipo': 'out', 'var': 'qv', 'idx': 3},
+            
+            # 4. NODO: RIEZACO
+            {'nodo': 'RieZaco', 'tipo': 'in',  'var': 'qg', 'idx': 3},
+            {'nodo': 'RieZaco', 'tipo': 'in',  'var': 'qv', 'idx': 3},
+            {'nodo': 'RieZaco', 'tipo': 'out', 'var': 'qp_sum', 'idx': 1},
+            {'nodo': 'RieZaco', 'tipo': 'out', 'var': 'qv', 'idx': 4},
+            
+            # 5. NODO: CANECOL
+            {'nodo': 'Canecol', 'tipo': 'in',  'var': 'qa', 'idx': 5},
+            {'nodo': 'Canecol', 'tipo': 'out', 'var': 'qg', 'idx': 5},
+            {'nodo': 'Canecol', 'tipo': 'out', 'var': 'qv', 'idx': 5},
+            
+            # 6. NODO: CANRUCUE
+            {'nodo': 'CanRucue', 'tipo': 'in',  'var': 'qv', 'idx': 5},
+            {'nodo': 'CanRucue', 'tipo': 'out', 'var': 'qg', 'idx': 6},
+            {'nodo': 'CanRucue', 'tipo': 'out', 'var': 'qv', 'idx': 6},
+            
+            # 7. NODO: CLAJRUCUE
+            {'nodo': 'CLajRucue', 'tipo': 'in',  'var': 'qv', 'idx': 4},
+            {'nodo': 'CLajRucue', 'tipo': 'out', 'var': 'qg', 'idx': 7},
+            {'nodo': 'CLajRucue', 'tipo': 'out', 'var': 'qv', 'idx': 7},
+            
+            # 8. NODO: RUCUE
+            {'nodo': 'Rucue', 'tipo': 'in',  'var': 'qg', 'idx': 6},
+            {'nodo': 'Rucue', 'tipo': 'in',  'var': 'qg', 'idx': 7},
+            {'nodo': 'Rucue', 'tipo': 'out', 'var': 'qg', 'idx': 8},
+            {'nodo': 'Rucue', 'tipo': 'out', 'var': 'qv', 'idx': 8},
+            
+            # 9. NODO: QUILLECO
+            {'nodo': 'Quilleco', 'tipo': 'in',  'var': 'qg', 'idx': 8},
+            {'nodo': 'Quilleco', 'tipo': 'in',  'var': 'qv', 'idx': 8},
+            {'nodo': 'Quilleco', 'tipo': 'out', 'var': 'qg', 'idx': 9},
+            {'nodo': 'Quilleco', 'tipo': 'out', 'var': 'qv', 'idx': 9},
+            
+            # 10. NODO: TUCAPEL
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qa', 'idx': 4},
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qg', 'idx': 5},
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qv', 'idx': 6},
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qv', 'idx': 7},
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qg', 'idx': 9},
+            {'nodo': 'Tucapel', 'tipo': 'in',  'var': 'qv', 'idx': 9},
+            {'nodo': 'Tucapel', 'tipo': 'out', 'var': 'qg', 'idx': 10},
+            {'nodo': 'Tucapel', 'tipo': 'out', 'var': 'qv', 'idx': 10},
+            
+            # 11. NODO: CANAL LAJA
+            {'nodo': 'CanalLaja', 'tipo': 'in',  'var': 'qg', 'idx': 10},
+            {'nodo': 'CanalLaja', 'tipo': 'in',  'var': 'qv', 'idx': 10},
+            {'nodo': 'CanalLaja', 'tipo': 'out', 'var': 'qg', 'idx': 11},
+            {'nodo': 'CanalLaja', 'tipo': 'out', 'var': 'qv', 'idx': 11},
+            
+            # 12. NODO: LAJA 1
+            {'nodo': 'Laja1', 'tipo': 'in',  'var': 'qa', 'idx': 6},
+            {'nodo': 'Laja1', 'tipo': 'in',  'var': 'qv', 'idx': 11},
+            {'nodo': 'Laja1', 'tipo': 'out', 'var': 'qg', 'idx': 13},
+            {'nodo': 'Laja1', 'tipo': 'out', 'var': 'qv', 'idx': 13},
+            
+            # 13. NODO: EL DIUTO
+            {'nodo': 'ElDiuto', 'tipo': 'in',  'var': 'qg', 'idx': 11},
+            {'nodo': 'ElDiuto', 'tipo': 'out', 'var': 'qg', 'idx': 15},
+            {'nodo': 'ElDiuto', 'tipo': 'out', 'var': 'qv', 'idx': 15},
+            
+            # 14. NODO: RIETUCAPEL
+            {'nodo': 'RieTucapel', 'tipo': 'in',  'var': 'qg', 'idx': 15},
+            {'nodo': 'RieTucapel', 'tipo': 'in',  'var': 'qv', 'idx': 15},
+            {'nodo': 'RieTucapel', 'tipo': 'out', 'var': 'qp_sum', 'idx': 2},
+        ]
+        
+        # Lista de nodos de balance únicos
+        self.NODOS_BALANCE = list(set(item['nodo'] for item in self.ARCOS_RED))
+        
         # Parámetros
         self.V_30Nov_1 = None  # V_{30Nov,1}: Volumen al 30 Nov previo a temporada 1 [hm³]
         self.V_0 = None  # V_0: Volumen al inicio de la planificación [hm³]
@@ -360,90 +450,59 @@ class ModeloLajaLatex:
                     self.qg[16, w, t] == self.qf[w, t],
                     name=f"laja_filt_{w}_{t}")
         
-        # ========== 7. BALANCE DE FLUJO EN REDES (Explícito por nodo) ==========
+        # ========== 7. BALANCE DE FLUJO EN REDES (Genérico usando ARCOS_RED) ==========
         print("  7. Balance de flujo en redes...")
+        for nodo in self.NODOS_BALANCE:
+            for t in self.T:
+                for w in self.W:
+                    # Construir flujo entrante y saliente para este nodo
+                    flujo_entrante = 0
+                    flujo_saliente = 0
+                    
+                    # Filtrar arcos que corresponden a este nodo
+                    arcos_nodo = [arco for arco in self.ARCOS_RED if arco['nodo'] == nodo]
+                    
+                    for arco in arcos_nodo:
+                        var_type = arco['var']
+                        idx = arco['idx']
+                        tipo = arco['tipo']
+                        
+                        # Seleccionar la variable correcta según el tipo
+                        if var_type == 'qa':
+                            valor = self.QA[idx, w, t]
+                        elif var_type == 'qg':
+                            valor = self.qg[idx, w, t]
+                        elif var_type == 'qv':
+                            valor = self.qv[idx, w, t]
+                        elif var_type == 'qer':
+                            valor = self.qer[w, t]
+                        elif var_type == 'qeg':
+                            valor = self.qeg[w, t]
+                        elif var_type == 'qf':
+                            valor = self.qf[w, t]
+                        elif var_type == 'qp_sum':
+                            valor = gp.quicksum(self.qp[d, idx, w, t] for d in self.D)
+                        else:
+                            continue  # Variable no reconocida
+                        
+                        # Agregar al flujo correspondiente
+                        if tipo == 'in':
+                            flujo_entrante += valor
+                        elif tipo == 'out':
+                            flujo_saliente += valor
+                    
+                    # Agregar restricción de balance
+                    self.model.addConstr(
+                        flujo_entrante == flujo_saliente,
+                        name=f"Balance_{nodo}_{w}_{t}")
+        
+        # RIESALTOS: Restricción especial (no es un balance de flujo)
+        print("  7b. Restricción especial RieSaltos...")
         for t in self.T:
             for w in self.W:
-                # ABANICO (Central 2)
-                self.model.addConstr(
-                    self.qg[2, w, t] == self.QA[2, w, t] + self.qg[16, w, t] - self.qv[2, w, t],
-                    name=f"abanico_{w}_{t}")
-                
-                # Distribución a canal Abanico (j=4)
-                self.model.addConstr(
-                    gp.quicksum(self.qp[d, 4, w, t] for d in self.D) == self.qg[2, w, t] + self.qv[2, w, t],
-                    name=f"abanico_canal_{w}_{t}")
-                
-                # ANTUCO (Central 3)
-                self.model.addConstr(
-                    self.qg[3, w, t] == self.QA[3, w, t] + self.qg[1, w, t] + self.qg[2, w, t] + self.qv[2, w, t] - self.qv[3, w, t],
-                    name=f"antuco_{w}_{t}")
-                
-                # RIEZACO (Canal j=1)
-                self.model.addConstr(
-                    gp.quicksum(self.qp[d, 1, w, t] for d in self.D) == self.qg[3, w, t] + self.qv[3, w, t] - self.qv[4, w, t],
-                    name=f"riezaco_{w}_{t}")
-                
-                # CANECOL (Central 5)
-                self.model.addConstr(
-                    self.qg[5, w, t] == self.QA[5, w, t] - self.qv[5, w, t],
-                    name=f"canecol_{w}_{t}")
-                
-                # CANRUCUE (Central 6)
-                self.model.addConstr(
-                    self.qg[6, w, t] == self.qv[5, w, t] - self.qv[6, w, t],
-                    name=f"canrucue_{w}_{t}")
-                
-                # CLAJRUCUE (Central 7)
-                self.model.addConstr(
-                    self.qg[7, w, t] == self.qv[4, w, t] - self.qv[7, w, t],
-                    name=f"clajrucue_{w}_{t}")
-                
-                # RUCUE (Central 8)
-                self.model.addConstr(
-                    self.qg[8, w, t] == self.qg[6, w, t] + self.qg[7, w, t] - self.qv[8, w, t],
-                    name=f"rucue_{w}_{t}")
-                
-                # QUILLECO (Central 9)
-                self.model.addConstr(
-                    self.qg[9, w, t] == self.qg[8, w, t] + self.qv[8, w, t] - self.qv[9, w, t],
-                    name=f"quilleco_{w}_{t}")
-                
-                # TUCAPEL (Central 10)
-                self.model.addConstr(
-                    self.qg[10, w, t] == self.qg[5, w, t] + self.qv[6, w, t] + self.qv[7, w, t] + self.qg[9, w, t] + self.qv[9, w, t] + self.QA[4, w, t] - self.qv[10, w, t],
-                    name=f"tucapel_{w}_{t}")
-                
-                # CANAL LAJA (Central 11)
-                self.model.addConstr(
-                    self.qg[11, w, t] == self.qg[10, w, t] + self.qv[10, w, t] - self.qv[11, w, t],
-                    name=f"canal_laja_{w}_{t}")
-                
-                # RIESALTOS (Canal j=3)
                 self.model.addConstr(
                     self.qp[3, 3, w, t] == self.qv[11, w, t],
                     name=f"riesaltos_{w}_{t}")
-                
-                # LAJA 1 (Central 13)
-                afluente_6 = self.QA.get((6, w, t), 0)
-                self.model.addConstr(
-                    self.qg[13, w, t] + self.qv[13, w, t] == self.qv[11, w, t] + afluente_6,
-                    name=f"laja1_{w}_{t}")
-                
-                # EL DIUTO (Central 15)
-                self.model.addConstr(
-                    self.qg[15, w, t] == self.qg[11, w, t] - self.qv[15, w, t],
-                    name=f"el_diuto_{w}_{t}")
-                
-                # RIETUCAPEL (Canal j=2)
-                self.model.addConstr(
-                    gp.quicksum(self.qp[d, 2, w, t] for d in self.D) == self.qg[15, w, t] + self.qv[15, w, t],
-                    name=f"rietucapel_{w}_{t}")
-                
-                # VERTIMIENTO EL TORO = 0
-                self.model.addConstr(
-                    self.qv[1, w, t] == 0,
-                    name=f"no_vert_eltoro_{w}_{t}")
         
         # ========== 8. CUMPLIMIENTO DE DEMANDAS DE RIEGO ==========
         print("  8. Cumplimiento de demandas de riego...")
