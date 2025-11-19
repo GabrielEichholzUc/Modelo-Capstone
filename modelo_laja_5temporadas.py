@@ -47,24 +47,40 @@ class ModeloLaja:
         self.V_min = None  # Volumen mínimo del lago (umbral) [hm³]
         self.M_bigM = None  # Parámetro Big-M (se carga desde Excel)
         
-        # Variables
+        # Variables (Formulación LaTeX)
         self.V_30Nov = {}  # V_30Nov[t]: Volumen al 30 Nov previo a temp t
         self.V = {}  # V[w,t]: Volumen al final de semana w de temporada t
-        self.ca = {}  # ca[k,w,t]: Binaria cota
-        self.ca_0 = {}  # ca[k,0]: Binaria cota inicial
-        self.ca_30Nov = {}  # ca[k,30Nov,t]: Binaria cota 30 Nov
-        self.ve = {}  # ve[u,w,t]: Volumen disponible
-        self.ve_0 = {}  # ve[u,0,t]: Volumen disponible inicial
-        self.qe = {}  # qe[u,w,t]: Caudal extraído
+        
+        # Variables de linealización (zonas)
+        self.phi_var = {}  # phi[k,w,t]: Binaria zona k completa en semana w, temporada t
+        self.delta_f = {}  # delta_f[k,w,t]: Filtración incremental en zona k
+        self.delta_vr = {}  # delta_vr[k,t]: Volumen riego incremental en zona k, temporada t
+        self.delta_vg = {}  # delta_vg[k,t]: Volumen generación incremental en zona k, temporada t
+        
+        # Volúmenes disponibles
+        self.VR = {}  # VR[w,t]: Volumen disponible para riego
+        self.VR_0 = {}  # VR_0[t]: Volumen inicial riego temporada t
+        self.VG = {}  # VG[w,t]: Volumen disponible para generación
+        self.VG_0 = {}  # VG_0[t]: Volumen inicial generación temporada t
+        
+        # Caudales
+        self.qer = {}  # qer[w,t]: Caudal extraído para riego
+        self.qeg = {}  # qeg[w,t]: Caudal extraído para generación
         self.qf = {}  # qf[w,t]: Caudal de filtración
         self.qg = {}  # qg[i,w,t]: Caudal generación
         self.qv = {}  # qv[i,w,t]: Caudal vertimiento
         self.qp = {}  # qp[d,j,w,t]: Caudal provisto riego
+        
+        # Déficit y superávit
         self.deficit = {}  # deficit[d,j,w,t]
         self.superavit = {}  # superavit[d,j,w,t]
-        self.eta = {}  # eta[d,j,w,t]: Binaria incumplimiento
+        
+        # Variables binarias de decisión
+        self.eta = {}  # eta[d,j,w,t]: Binaria incumplimiento convenio
         self.alpha = {}  # alpha[w,t]: Binaria Abanico(1) vs Tucapel(0)
-        self.beta = {}  # beta[w,t]: Binaria umbral 1400 hm³
+        self.beta = {}  # beta[w,t]: Binaria umbral V_min
+        
+        # Energía generada
         self.GEN = {}  # GEN[i,t]: Energía generada [GWh] por central i en temporada t
         
     def cargar_parametros(self, dict_parametros):
@@ -89,24 +105,32 @@ class ModeloLaja:
         print("✓ Parámetros cargados correctamente")
         
     def crear_variables(self):
-        """Crea todas las variables de decisión"""
-        print("Creando variables de decisión...")
+        """Crea todas las variables de decisión según formulación LaTeX"""
+        print("Creando variables de decisión (Formulación LaTeX)...")
+        
+        # Número de zonas de linealización
+        num_zonas = len(self.K) - 1
+        K_zonas = list(range(1, num_zonas + 1))  # Zonas 1 a K-1
         
         # Volúmenes del lago
         self.V_30Nov = self.model.addVars(self.T, lb=0, ub=self.V_MAX, name="V_30Nov")
         self.V = self.model.addVars(self.W, self.T, lb=0, ub=self.V_MAX, name="V")
         
-        # Variables de cota
-        self.ca = self.model.addVars(self.K, self.W, self.T, vtype=GRB.BINARY, name="ca")
-        self.ca_0 = self.model.addVars(self.K, vtype=GRB.BINARY, name="ca_0")
-        self.ca_30Nov = self.model.addVars(self.K, self.T, vtype=GRB.BINARY, name="ca_30Nov")
+        # Variables de linealización (phi y deltas)
+        self.phi_var = self.model.addVars(K_zonas, self.W, self.T, vtype=GRB.BINARY, name="phi")
+        self.delta_f = self.model.addVars(K_zonas, self.W, self.T, lb=0, name="delta_f")
+        self.delta_vr = self.model.addVars(K_zonas, self.T, lb=0, name="delta_vr")
+        self.delta_vg = self.model.addVars(K_zonas, self.T, lb=0, name="delta_vg")
         
-        # Volúmenes por uso
-        self.ve = self.model.addVars(self.U, self.W, self.T, lb=0, name="ve")
-        self.ve_0 = self.model.addVars(self.U, self.T, lb=0, name="ve_0")
+        # Volúmenes disponibles por uso
+        self.VR_0 = self.model.addVars(self.T, lb=0, name="VR_0")
+        self.VR = self.model.addVars(self.W, self.T, lb=0, name="VR")
+        self.VG_0 = self.model.addVars(self.T, lb=0, name="VG_0")
+        self.VG = self.model.addVars(self.W, self.T, lb=0, name="VG")
         
         # Caudales
-        self.qe = self.model.addVars(self.U, self.W, self.T, lb=0, name="qe")
+        self.qer = self.model.addVars(self.W, self.T, lb=0, name="qer")
+        self.qeg = self.model.addVars(self.W, self.T, lb=0, name="qeg")
         self.qf = self.model.addVars(self.W, self.T, lb=0, name="qf")
         self.qg = self.model.addVars(self.I, self.W, self.T, lb=0, name="qg")
         self.qv = self.model.addVars(self.I, self.W, self.T, lb=0, name="qv")
@@ -127,7 +151,167 @@ class ModeloLaja:
         print("✓ Variables creadas correctamente")
         
     def crear_restricciones(self):
-        """Crea todas las restricciones del modelo"""
+        """Crea todas las restricciones según formulación LaTeX"""
+        print("Creando restricciones (Formulación LaTeX)...")
+        
+        # Número de zonas
+        num_zonas = len(self.K) - 1
+        K_zonas = list(range(1, num_zonas + 1))
+        K_list = sorted(self.K)
+        
+        # ========== 1. DEFINICIÓN DE FILTRACIONES ==========
+        print("  1. Definición de filtraciones...")
+        for t in self.T:
+            for w in self.W:
+                # qf[w,t] = f_1 + Σ delta_f[k,w,t]
+                self.model.addConstr(
+                    self.qf[w, t] == self.FC[K_list[0]] + gp.quicksum(
+                        self.delta_f[k, w, t] for k in K_zonas
+                    ),
+                    name=f"def_filtracion_{w}_{t}")
+                
+                for k in K_zonas:
+                    k_idx = k - 1  # Índice en K_list
+                    f_k = self.FC[K_list[k_idx]]
+                    f_k_next = self.FC[K_list[k_idx + 1]]
+                    
+                    # delta_f[k,w,t] ≤ f_{k+1} - f_k
+                    self.model.addConstr(
+                        self.delta_f[k, w, t] <= f_k_next - f_k,
+                        name=f"delta_f_upper_{k}_{w}_{t}")
+                    
+                    # delta_f[k,w,t] ≥ phi[k,w,t] * (f_{k+1} - f_k)
+                    self.model.addConstr(
+                        self.delta_f[k, w, t] >= self.phi_var[k, w, t] * (f_k_next - f_k),
+                        name=f"delta_f_lower_{k}_{w}_{t}")
+                    
+                    # delta_f[k,w,t] ≤ phi[k-1,w,t] * (f_{k+1} - f_k)  (si k > 1)
+                    if k > 1:
+                        self.model.addConstr(
+                            self.delta_f[k, w, t] <= self.phi_var[k-1, w, t] * (f_k_next - f_k),
+                            name=f"delta_f_prev_{k}_{w}_{t}")
+                    else:
+                        # Para k=1, phi[0] = 1 (siempre activo)
+                        self.model.addConstr(
+                            self.delta_f[k, w, t] <= f_k_next - f_k,
+                            name=f"delta_f_prev_{k}_{w}_{t}")
+                
+                # V[w,t] = v_1 + Σ (v_{k+1} - v_k)/(f_{k+1} - f_k) * delta_f[k,w,t]
+                v_expr = self.VC[K_list[0]]
+                for k in K_zonas:
+                    k_idx = k - 1
+                    v_k = self.VC[K_list[k_idx]]
+                    v_k_next = self.VC[K_list[k_idx + 1]]
+                    f_k = self.FC[K_list[k_idx]]
+                    f_k_next = self.FC[K_list[k_idx + 1]]
+                    
+                    if abs(f_k_next - f_k) > 1e-6:
+                        coef = (v_k_next - v_k) / (f_k_next - f_k)
+                        v_expr += coef * self.delta_f[k, w, t]
+                
+                self.model.addConstr(
+                    self.V[w, t] == v_expr,
+                    name=f"vol_from_filtracion_{w}_{t}")
+        
+        # ========== 2. DEFINICIÓN DE VOLÚMENES DE RIEGO (30 NOV) ==========
+        print("  2. Volúmenes disponibles de riego...")
+        for t in self.T:
+            # VR_0[t] = vr_1 + Σ delta_vr[k,t]
+            self.model.addConstr(
+                self.VR_0[t] == self.VUC[(1, K_list[0])] + gp.quicksum(
+                    self.delta_vr[k, t] for k in K_zonas
+                ),
+                name=f"def_VR0_{t}")
+            
+            for k in K_zonas:
+                k_idx = k - 1
+                vr_k = self.VUC[(1, K_list[k_idx])]
+                vr_k_next = self.VUC[(1, K_list[k_idx + 1])]
+                
+                # delta_vr[k,t] ≤ vr_{k+1} - vr_k
+                self.model.addConstr(
+                    self.delta_vr[k, t] <= vr_k_next - vr_k,
+                    name=f"delta_vr_upper_{k}_{t}")
+                
+                # delta_vr[k,t] ≥ phi[k,32,t] * (vr_{k+1} - vr_k)
+                self.model.addConstr(
+                    self.delta_vr[k, t] >= self.phi_var[k, 32, t] * (vr_k_next - vr_k),
+                    name=f"delta_vr_lower_{k}_{t}")
+                
+                # delta_vr[k,t] ≤ phi[k-1,32,t] * (vr_{k+1} - vr_k)
+                if k > 1:
+                    self.model.addConstr(
+                        self.delta_vr[k, t] <= self.phi_var[k-1, 32, t] * (vr_k_next - vr_k),
+                        name=f"delta_vr_prev_{k}_{t}")
+                else:
+                    self.model.addConstr(
+                        self.delta_vr[k, t] <= vr_k_next - vr_k,
+                        name=f"delta_vr_prev_{k}_{t}")
+            
+            # V[32,t] = v_1 + Σ (v_{k+1} - v_k)/(vr_{k+1} - vr_k) * delta_vr[k,t]
+            # (Esta restricción vincula V[32,t] con VR_0[t])
+            v_expr = self.VC[K_list[0]]
+            for k in K_zonas:
+                k_idx = k - 1
+                v_k = self.VC[K_list[k_idx]]
+                v_k_next = self.VC[K_list[k_idx + 1]]
+                vr_k = self.VUC[(1, K_list[k_idx])]
+                vr_k_next = self.VUC[(1, K_list[k_idx + 1])]
+                
+                if abs(vr_k_next - vr_k) > 1e-6:
+                    coef = (v_k_next - v_k) / (vr_k_next - vr_k)
+                    v_expr += coef * self.delta_vr[k, t]
+            
+            self.model.addConstr(
+                self.V[32, t] == v_expr,
+                name=f"vol32_from_VR_{t}")
+        
+        # ========== 3. DEFINICIÓN DE VOLÚMENES DE GENERACIÓN (30 NOV) ==========
+        print("  3. Volúmenes disponibles de generación...")
+        for t in self.T:
+            # VG_0[t] = vg_1 + Σ delta_vg[k,t]
+            self.model.addConstr(
+                self.VG_0[t] == self.VUC[(2, K_list[0])] + gp.quicksum(
+                    self.delta_vg[k, t] for k in K_zonas
+                ),
+                name=f"def_VG0_{t}")
+            
+            for k in K_zonas:
+                k_idx = k - 1
+                vg_k = self.VUC[(2, K_list[k_idx])]
+                vg_k_next = self.VUC[(2, K_list[k_idx + 1])]
+                
+                # delta_vg[k,t] ≤ vg_{k+1} - vg_k
+                self.model.addConstr(
+                    self.delta_vg[k, t] <= vg_k_next - vg_k,
+                    name=f"delta_vg_upper_{k}_{t}")
+                
+                # delta_vg[k,t] ≥ phi[k,32,t] * (vg_{k+1} - vg_k)
+                self.model.addConstr(
+                    self.delta_vg[k, t] >= self.phi_var[k, 32, t] * (vg_k_next - vg_k),
+                    name=f"delta_vg_lower_{k}_{t}")
+                
+                # delta_vg[k,t] ≤ phi[k-1,32,t] * (vg_{k+1} - vg_k)
+                if k > 1:
+                    self.model.addConstr(
+                        self.delta_vg[k, t] <= self.phi_var[k-1, 32, t] * (vg_k_next - vg_k),
+                        name=f"delta_vg_prev_{k}_{t}")
+                else:
+                    self.model.addConstr(
+                        self.delta_vg[k, t] <= vg_k_next - vg_k,
+                        name=f"delta_vg_prev_{k}_{t}")
+        
+        # ========== 4. GENERACIÓN EN EL TORO ==========
+        print("  4. Generación en El Toro...")
+        for t in self.T:
+            for w in self.W:
+                # qg[1,w,t] = qer[w,t] + qeg[w,t]
+                self.model.addConstr(
+                    self.qg[1, w, t] == self.qer[w, t] + self.qeg[w, t],
+                    name=f"gen_eltoro_{w}_{t}")
+        
+        # ========== 5. BALANCE DE VOLUMEN EN EL LAGO ==========
+        print("  5. Balance de volumen del lago...")
         print("Creando restricciones...")
         M_vol = self.V_MAX * 2
         

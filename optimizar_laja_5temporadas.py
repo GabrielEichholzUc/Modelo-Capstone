@@ -1,8 +1,9 @@
 """
 Script principal para optimizar el modelo de 5 temporadas de la cuenca del Laja
+Utiliza la formulación LaTeX con linealización por zonas progresivas
 """
 
-from modelo_laja_5temporadas import ModeloLaja
+from modelo_laja_latex import ModeloLajaLatex
 from cargar_datos_5temporadas import cargar_parametros_excel
 import time
 
@@ -24,7 +25,7 @@ def main():
     print("\n" + "="*70)
     print("PASO 2: Inicializando modelo de optimización...")
     print("-" * 70)
-    modelo = ModeloLaja()
+    modelo = ModeloLajaLatex()
     
     # 3. Cargar parámetros en el modelo
     print("\nCargando parámetros en el modelo...")
@@ -75,7 +76,9 @@ def main():
     print("  ✓ volumenes_lago.csv - Evolución del volumen del lago")
     print("  ✓ riego.csv - Retiros, déficits e incumplimientos de riego")
     print("  ✓ decision_alpha.csv - Decisión Abanico vs Tucapel por semana")
+    print("  ✓ decision_beta.csv - Penalizaciones por umbral mínimo")
     print("  ✓ energia_total.csv - Energía total generada por central y temporada")
+    print("  ✓ phi_zonas.csv - Zonas de linealización activadas (formulación LaTeX)")
     print("\n" + "="*70 + "\n")
 
 

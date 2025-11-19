@@ -6,7 +6,7 @@ Versión para 5 temporadas
 import pandas as pd
 import numpy as np
 
-def cargar_nombres_centrales(archivo_excel="Parametros_Finales.xlsx"):
+def cargar_nombres_centrales(archivo_excel="Parametros_Nuevos.xlsx"):
     """
     Carga los nombres de las centrales desde la hoja Índices
     
@@ -33,7 +33,7 @@ def cargar_nombres_centrales(archivo_excel="Parametros_Finales.xlsx"):
     
     return nombres
 
-def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"): 
+def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"): 
     """
     Carga todos los parámetros desde el archivo Excel para modelo de 5 temporadas
     
@@ -46,7 +46,7 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     
     parametros = {}
     
-    # 1. GENERALES (V_30Nov_1, V_0, V_MAX, psi, phi)
+    # 1. GENERALES (V_30Nov_1, V_0, V_MIN, V_MAX, V_F, psi, nu)
     print("Cargando parámetros generales...")
     df_generales = pd.read_excel(archivo_excel, sheet_name='Generales')
     
@@ -59,52 +59,55 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
             parametros['V_0'] = float(row.iloc[1])
         elif 'V_MAX' in param:
             parametros['V_MAX'] = float(row.iloc[1])
-        elif 'V_min' in param or 'V_MIN' in param:
-            parametros['V_min'] = float(row.iloc[1])
+        elif 'V_MIN' in param or 'V_min' in param:
+            parametros['V_MIN'] = float(row.iloc[1])
+        elif 'V_F' in param or 'V_final' in param:
+            parametros['V_F'] = float(row.iloc[1])
         elif 'psi' in param:
             parametros['psi'] = float(row.iloc[1])  # [GWh]
-        elif 'phi' in param:
-            parametros['phi'] = float(row.iloc[1])  # [GWh]
-        elif 'M' in param and 'MAX' not in param and 'MIN' not in param:  # M pero no V_MAX ni V_MIN
+        elif 'nu' in param or 'phi' in param:
+            parametros['nu'] = float(row.iloc[1])  # [GWh] - nu en LaTeX
+        elif 'M' in param and 'MAX' not in param and 'MIN' not in param and 'V_' not in param:
             parametros['M'] = float(row.iloc[1])
     
     print(f"  V_30Nov_1 = {parametros.get('V_30Nov_1', 'N/A')} hm³")
     print(f"  V_0 = {parametros.get('V_0', 'N/A')} hm³")
+    print(f"  V_MIN = {parametros.get('V_MIN', 'N/A')} hm³")
     print(f"  V_MAX = {parametros.get('V_MAX', 'N/A')} hm³")
-    print(f"  V_min = {parametros.get('V_min', 'N/A')} hm³")
+    print(f"  V_F = {parametros.get('V_F', 'N/A')} hm³")
     print(f"  psi (incumplimiento) = {parametros.get('psi', 'N/A')} GWh")
-    print(f"  phi (umbral V_min) = {parametros.get('phi', 'N/A')} GWh")
+    print(f"  nu (umbral V_MIN/V_MAX) = {parametros.get('nu', 'N/A')} GWh")
     print(f"  M (Big-M) = {parametros.get('M', 'N/A')}")
     
-    # 2. FC_k (Filtraciones por cota)
-    print("\nCargando filtraciones FC_k...")
-    df_fc = pd.read_excel(archivo_excel, sheet_name='FC_k')
-    parametros['FC'] = {}
+    # 2. f_k (Filtraciones por zona) - NOMBRE ACTUALIZADO
+    print("\nCargando filtraciones f_k...")
+    df_fk = pd.read_excel(archivo_excel, sheet_name='f_k')
+    parametros['FC'] = {}  # Se mantiene FC internamente para compatibilidad
     
-    if 'k' in df_fc.columns and 'FC' in df_fc.columns:
-        for _, row in df_fc.iterrows():
+    if 'k' in df_fk.columns and 'f_k' in df_fk.columns:
+        for _, row in df_fk.iterrows():
             k = int(row['k'])
-            parametros['FC'][k] = float(row['FC'])
-    elif df_fc.shape[1] >= 2:
-        for _, row in df_fc.iterrows():
+            parametros['FC'][k] = float(row['f_k'])
+    elif df_fk.shape[1] >= 2:
+        for _, row in df_fk.iterrows():
             if pd.notna(row.iloc[0]):
                 k = int(row.iloc[0])
                 parametros['FC'][k] = float(row.iloc[1])
     
-    print(f"  Cargadas {len(parametros['FC'])} cotas")
-    print(f"  Rango cotas: {min(parametros['FC'].keys())} - {max(parametros['FC'].keys())}")
+    print(f"  Cargadas {len(parametros['FC'])} zonas")
+    print(f"  Rango zonas: {min(parametros['FC'].keys())} - {max(parametros['FC'].keys())}")
     
-    # 3. VC_k (Volumen por cota)
-    print("\nCargando volúmenes VC_k...")
-    df_vc = pd.read_excel(archivo_excel, sheet_name='VC_k')
-    parametros['VC'] = {}
+    # 3. v_k (Volumen por zona) - NOMBRE ACTUALIZADO
+    print("\nCargando volúmenes v_k...")
+    df_vk = pd.read_excel(archivo_excel, sheet_name='v_k')
+    parametros['VC'] = {}  # Se mantiene VC internamente para compatibilidad
     
-    if 'k' in df_vc.columns and 'VC' in df_vc.columns:
-        for _, row in df_vc.iterrows():
+    if 'k' in df_vk.columns and 'v_k' in df_vk.columns:
+        for _, row in df_vk.iterrows():
             k = int(row['k'])
-            parametros['VC'][k] = float(row['VC'])
-    elif df_vc.shape[1] >= 2:
-        for _, row in df_vc.iterrows():
+            parametros['VC'][k] = float(row['v_k'])
+    elif df_vk.shape[1] >= 2:
+        for _, row in df_vk.iterrows():
             if pd.notna(row.iloc[0]):
                 k = int(row.iloc[0])
                 parametros['VC'][k] = float(row.iloc[1])
@@ -112,16 +115,33 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     print(f"  Cargados {len(parametros['VC'])} volúmenes")
     print(f"  Rango: {min(parametros['VC'].values()):.2f} - {max(parametros['VC'].values()):.2f} hm³")
     
-    # 4. VUC_k,u (Volumen por uso y cota)
-    print("\nCargando volúmenes por uso VUC_k,u...")
-    df_vuc = pd.read_excel(archivo_excel, sheet_name='VUC_k,u')
+    # 4. vr_k y vg_k (Volumen por uso y zona) - NOMBRES ACTUALIZADOS
+    print("\nCargando volúmenes por uso vr_k y vg_k...")
+    df_vrk = pd.read_excel(archivo_excel, sheet_name='vr_k')
+    df_vgk = pd.read_excel(archivo_excel, sheet_name='vg_k')
     parametros['VUC'] = {}
     
-    # Estructura: Cota | Riego | Generacion
-    for _, row in df_vuc.iterrows():
-        k = int(row['Cota'])
-        parametros['VUC'][(1, k)] = float(row['Riego'])  # u=1 es riego
-        parametros['VUC'][(2, k)] = float(row['Generacion'])  # u=2 es generación
+    # vr_k (Riego, u=1)
+    if 'k' in df_vrk.columns and 'vr_k' in df_vrk.columns:
+        for _, row in df_vrk.iterrows():
+            k = int(row['k'])
+            parametros['VUC'][(1, k)] = float(row['vr_k'])
+    elif df_vrk.shape[1] >= 2:
+        for _, row in df_vrk.iterrows():
+            if pd.notna(row.iloc[0]):
+                k = int(row.iloc[0])
+                parametros['VUC'][(1, k)] = float(row.iloc[1])
+    
+    # vg_k (Generación, u=2)
+    if 'k' in df_vgk.columns and 'vg_k' in df_vgk.columns:
+        for _, row in df_vgk.iterrows():
+            k = int(row['k'])
+            parametros['VUC'][(2, k)] = float(row['vg_k'])
+    elif df_vgk.shape[1] >= 2:
+        for _, row in df_vgk.iterrows():
+            if pd.notna(row.iloc[0]):
+                k = int(row.iloc[0])
+                parametros['VUC'][(2, k)] = float(row.iloc[1])
     
     print(f"  Cargados {len(parametros['VUC'])} volúmenes de uso")
     
@@ -304,10 +324,16 @@ def cargar_parametros_excel(archivo_excel="Parametros_Finales.xlsx"):
     df_fs = pd.read_excel(archivo_excel, sheet_name='FS_w')
     parametros['FS'] = {}
     
-    # Estructura: w | s (segundos)
-    for _, row in df_fs.iterrows():
-        w = int(row['w'])
-        parametros['FS'][w] = float(row['s'])
+    # Estructura: w | FS (segundos)
+    if 'w' in df_fs.columns and 'FS' in df_fs.columns:
+        for _, row in df_fs.iterrows():
+            w = int(row['w'])
+            parametros['FS'][w] = float(row['FS'])
+    elif df_fs.shape[1] >= 2:
+        for _, row in df_fs.iterrows():
+            if pd.notna(row.iloc[0]):
+                w = int(row.iloc[0])
+                parametros['FS'][w] = float(row.iloc[1])
     
     print(f"  Cargados {len(parametros['FS'])} factores de segundos")
     

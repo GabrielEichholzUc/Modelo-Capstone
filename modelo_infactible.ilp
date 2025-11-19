@@ -1,0 +1,554 @@
+\ Model Convenio_Laja_5Temporadas_LaTeX_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+\ Signature: 0x730a4415aabd58bb
+Maximize
+ 
+Subject To
+ def_qf_33_5: - delta_f[1,33,5] - delta_f[2,33,5] - delta_f[3,33,5]
+   - delta_f[4,33,5] - delta_f[5,33,5] - delta_f[6,33,5] - delta_f[7,33,5]
+   - delta_f[8,33,5] - delta_f[9,33,5] + qf[33,5] = 14.0980075800253
+ delta_f_upper_1_33_5: delta_f[1,33,5] <= 2.048444218213263
+ delta_f_upper_2_33_5: delta_f[2,33,5] <= 1.89047884674801
+ delta_f_upper_3_33_5: delta_f[3,33,5] <= 3.92569343955256
+ delta_f_upper_4_33_5: delta_f[4,33,5] <= 1.085057999065612
+ delta_f_upper_5_33_5: delta_f[5,33,5] <= 2.685826988890767
+ delta_f_upper_6_33_5: delta_f[6,33,5] <= 3.525998903933214
+ delta_f_upper_7_33_5: delta_f[7,33,5] <= 4.276933431130601
+ delta_f_upper_8_33_5: delta_f[8,33,5] <= 8.431379118715995
+ vol_from_f_33_5: V[33,5] - 121.0895409279708 delta_f[1,33,5]
+   - 140.9391279137202 delta_f[2,33,5] - 175.7015290726868 delta_f[3,33,5]
+   - 196.9062761474381 delta_f[4,33,5] - 198.1078871427038 delta_f[5,33,5]
+   - 187.9909716536189 delta_f[6,33,5] - 169.827885258432 delta_f[7,33,5]
+   - 144.7492791886055 delta_f[8,33,5] - 119.8555257464635 delta_f[9,33,5]
+   = 0
+ def_qf_34_5: - delta_f[1,34,5] - delta_f[2,34,5] - delta_f[3,34,5]
+   - delta_f[4,34,5] - delta_f[5,34,5] - delta_f[6,34,5] - delta_f[7,34,5]
+   - delta_f[8,34,5] - delta_f[9,34,5] + qf[34,5] = 14.0980075800253
+ delta_f_upper_1_34_5: delta_f[1,34,5] <= 2.048444218213263
+ delta_f_upper_2_34_5: delta_f[2,34,5] <= 1.89047884674801
+ delta_f_prev_3_34_5: - 3.92569343955256 phi[2,34,5] + delta_f[3,34,5]
+   <= 0
+ delta_f_upper_4_34_5: delta_f[4,34,5] <= 1.085057999065612
+ delta_f_upper_5_34_5: delta_f[5,34,5] <= 2.685826988890767
+ delta_f_upper_6_34_5: delta_f[6,34,5] <= 3.525998903933214
+ delta_f_upper_7_34_5: delta_f[7,34,5] <= 4.276933431130601
+ delta_f_prev_8_34_5: - 8.431379118715995 phi[7,34,5] + delta_f[8,34,5]
+   <= 0
+ vol_from_f_34_5: V[34,5] - 121.0895409279708 delta_f[1,34,5]
+   - 140.9391279137202 delta_f[2,34,5] - 175.7015290726868 delta_f[3,34,5]
+   - 196.9062761474381 delta_f[4,34,5] - 198.1078871427038 delta_f[5,34,5]
+   - 187.9909716536189 delta_f[6,34,5] - 169.827885258432 delta_f[7,34,5]
+   - 144.7492791886055 delta_f[8,34,5] - 119.8555257464635 delta_f[9,34,5]
+   = 0
+ def_qf_35_5: - delta_f[1,35,5] - delta_f[2,35,5] - delta_f[3,35,5]
+   - delta_f[4,35,5] - delta_f[5,35,5] - delta_f[6,35,5] - delta_f[7,35,5]
+   - delta_f[8,35,5] - delta_f[9,35,5] + qf[35,5] = 14.0980075800253
+ delta_f_upper_1_35_5: delta_f[1,35,5] <= 2.048444218213263
+ delta_f_prev_2_35_5: - 1.89047884674801 phi[1,35,5] + delta_f[2,35,5]
+   <= 0
+ delta_f_prev_3_35_5: - 3.92569343955256 phi[2,35,5] + delta_f[3,35,5]
+   <= 0
+ delta_f_upper_4_35_5: delta_f[4,35,5] <= 1.085057999065612
+ delta_f_prev_5_35_5: - 2.685826988890767 phi[4,35,5] + delta_f[5,35,5]
+   <= 0
+ delta_f_prev_6_35_5: - 3.525998903933214 phi[5,35,5] + delta_f[6,35,5]
+   <= 0
+ delta_f_prev_7_35_5: - 4.276933431130601 phi[6,35,5] + delta_f[7,35,5]
+   <= 0
+ delta_f_upper_8_35_5: delta_f[8,35,5] <= 8.431379118715995
+ vol_from_f_35_5: V[35,5] - 121.0895409279708 delta_f[1,35,5]
+   - 140.9391279137202 delta_f[2,35,5] - 175.7015290726868 delta_f[3,35,5]
+   - 196.9062761474381 delta_f[4,35,5] - 198.1078871427038 delta_f[5,35,5]
+   - 187.9909716536189 delta_f[6,35,5] - 169.827885258432 delta_f[7,35,5]
+   - 144.7492791886055 delta_f[8,35,5] - 119.8555257464635 delta_f[9,35,5]
+   = 0
+ def_qf_36_5: - delta_f[1,36,5] - delta_f[2,36,5] - delta_f[3,36,5]
+   - delta_f[4,36,5] - delta_f[5,36,5] - delta_f[6,36,5] - delta_f[7,36,5]
+   - delta_f[8,36,5] - delta_f[9,36,5] + qf[36,5] = 14.0980075800253
+ delta_f_upper_1_36_5: delta_f[1,36,5] <= 2.048444218213263
+ delta_f_upper_2_36_5: delta_f[2,36,5] <= 1.89047884674801
+ delta_f_upper_3_36_5: delta_f[3,36,5] <= 3.92569343955256
+ delta_f_prev_4_36_5: - 1.085057999065612 phi[3,36,5] + delta_f[4,36,5]
+   <= 0
+ delta_f_upper_5_36_5: delta_f[5,36,5] <= 2.685826988890767
+ delta_f_upper_6_36_5: delta_f[6,36,5] <= 3.525998903933214
+ delta_f_upper_7_36_5: delta_f[7,36,5] <= 4.276933431130601
+ delta_f_upper_8_36_5: delta_f[8,36,5] <= 8.431379118715995
+ vol_from_f_36_5: V[36,5] - 121.0895409279708 delta_f[1,36,5]
+   - 140.9391279137202 delta_f[2,36,5] - 175.7015290726868 delta_f[3,36,5]
+   - 196.9062761474381 delta_f[4,36,5] - 198.1078871427038 delta_f[5,36,5]
+   - 187.9909716536189 delta_f[6,36,5] - 169.827885258432 delta_f[7,36,5]
+   - 144.7492791886055 delta_f[8,36,5] - 119.8555257464635 delta_f[9,36,5]
+   = 0
+ def_qf_37_5: - delta_f[1,37,5] - delta_f[2,37,5] - delta_f[3,37,5]
+   - delta_f[4,37,5] - delta_f[5,37,5] - delta_f[6,37,5] - delta_f[7,37,5]
+   - delta_f[8,37,5] - delta_f[9,37,5] + qf[37,5] = 14.0980075800253
+ delta_f_upper_1_37_5: delta_f[1,37,5] <= 2.048444218213263
+ delta_f_upper_2_37_5: delta_f[2,37,5] <= 1.89047884674801
+ delta_f_upper_3_37_5: delta_f[3,37,5] <= 3.92569343955256
+ delta_f_prev_4_37_5: - 1.085057999065612 phi[3,37,5] + delta_f[4,37,5]
+   <= 0
+ delta_f_prev_5_37_5: - 2.685826988890767 phi[4,37,5] + delta_f[5,37,5]
+   <= 0
+ delta_f_upper_6_37_5: delta_f[6,37,5] <= 3.525998903933214
+ delta_f_upper_7_37_5: delta_f[7,37,5] <= 4.276933431130601
+ delta_f_upper_8_37_5: delta_f[8,37,5] <= 8.431379118715995
+ vol_from_f_37_5: V[37,5] - 121.0895409279708 delta_f[1,37,5]
+   - 140.9391279137202 delta_f[2,37,5] - 175.7015290726868 delta_f[3,37,5]
+   - 196.9062761474381 delta_f[4,37,5] - 198.1078871427038 delta_f[5,37,5]
+   - 187.9909716536189 delta_f[6,37,5] - 169.827885258432 delta_f[7,37,5]
+   - 144.7492791886055 delta_f[8,37,5] - 119.8555257464635 delta_f[9,37,5]
+   = 0
+ def_qf_38_5: - delta_f[1,38,5] - delta_f[2,38,5] - delta_f[3,38,5]
+   - delta_f[4,38,5] - delta_f[5,38,5] - delta_f[6,38,5] - delta_f[7,38,5]
+   - delta_f[8,38,5] - delta_f[9,38,5] + qf[38,5] = 14.0980075800253
+ delta_f_upper_1_38_5: delta_f[1,38,5] <= 2.048444218213263
+ delta_f_upper_2_38_5: delta_f[2,38,5] <= 1.89047884674801
+ delta_f_upper_3_38_5: delta_f[3,38,5] <= 3.92569343955256
+ delta_f_upper_4_38_5: delta_f[4,38,5] <= 1.085057999065612
+ delta_f_prev_5_38_5: - 2.685826988890767 phi[4,38,5] + delta_f[5,38,5]
+   <= 0
+ delta_f_upper_6_38_5: delta_f[6,38,5] <= 3.525998903933214
+ delta_f_upper_7_38_5: delta_f[7,38,5] <= 4.276933431130601
+ delta_f_prev_8_38_5: - 8.431379118715995 phi[7,38,5] + delta_f[8,38,5]
+   <= 0
+ vol_from_f_38_5: V[38,5] - 121.0895409279708 delta_f[1,38,5]
+   - 140.9391279137202 delta_f[2,38,5] - 175.7015290726868 delta_f[3,38,5]
+   - 196.9062761474381 delta_f[4,38,5] - 198.1078871427038 delta_f[5,38,5]
+   - 187.9909716536189 delta_f[6,38,5] - 169.827885258432 delta_f[7,38,5]
+   - 144.7492791886055 delta_f[8,38,5] - 119.8555257464635 delta_f[9,38,5]
+   = 0
+ def_qf_39_5: - delta_f[1,39,5] - delta_f[2,39,5] - delta_f[3,39,5]
+   - delta_f[4,39,5] - delta_f[5,39,5] - delta_f[6,39,5] - delta_f[7,39,5]
+   - delta_f[8,39,5] - delta_f[9,39,5] + qf[39,5] = 14.0980075800253
+ delta_f_upper_1_39_5: delta_f[1,39,5] <= 2.048444218213263
+ delta_f_upper_2_39_5: delta_f[2,39,5] <= 1.89047884674801
+ delta_f_upper_3_39_5: delta_f[3,39,5] <= 3.92569343955256
+ delta_f_prev_4_39_5: - 1.085057999065612 phi[3,39,5] + delta_f[4,39,5]
+   <= 0
+ delta_f_upper_5_39_5: delta_f[5,39,5] <= 2.685826988890767
+ delta_f_prev_6_39_5: - 3.525998903933214 phi[5,39,5] + delta_f[6,39,5]
+   <= 0
+ delta_f_prev_7_39_5: - 4.276933431130601 phi[6,39,5] + delta_f[7,39,5]
+   <= 0
+ delta_f_upper_8_39_5: delta_f[8,39,5] <= 8.431379118715995
+ vol_from_f_39_5: V[39,5] - 121.0895409279708 delta_f[1,39,5]
+   - 140.9391279137202 delta_f[2,39,5] - 175.7015290726868 delta_f[3,39,5]
+   - 196.9062761474381 delta_f[4,39,5] - 198.1078871427038 delta_f[5,39,5]
+   - 187.9909716536189 delta_f[6,39,5] - 169.827885258432 delta_f[7,39,5]
+   - 144.7492791886055 delta_f[8,39,5] - 119.8555257464635 delta_f[9,39,5]
+   = 0
+ def_qf_40_5: - delta_f[1,40,5] - delta_f[2,40,5] - delta_f[3,40,5]
+   - delta_f[4,40,5] - delta_f[5,40,5] - delta_f[6,40,5] - delta_f[7,40,5]
+   - delta_f[8,40,5] - delta_f[9,40,5] + qf[40,5] = 14.0980075800253
+ delta_f_upper_1_40_5: delta_f[1,40,5] <= 2.048444218213263
+ delta_f_upper_2_40_5: delta_f[2,40,5] <= 1.89047884674801
+ delta_f_upper_3_40_5: delta_f[3,40,5] <= 3.92569343955256
+ delta_f_prev_4_40_5: - 1.085057999065612 phi[3,40,5] + delta_f[4,40,5]
+   <= 0
+ delta_f_upper_5_40_5: delta_f[5,40,5] <= 2.685826988890767
+ delta_f_upper_6_40_5: delta_f[6,40,5] <= 3.525998903933214
+ delta_f_upper_7_40_5: delta_f[7,40,5] <= 4.276933431130601
+ delta_f_prev_8_40_5: - 8.431379118715995 phi[7,40,5] + delta_f[8,40,5]
+   <= 0
+ vol_from_f_40_5: V[40,5] - 121.0895409279708 delta_f[1,40,5]
+   - 140.9391279137202 delta_f[2,40,5] - 175.7015290726868 delta_f[3,40,5]
+   - 196.9062761474381 delta_f[4,40,5] - 198.1078871427038 delta_f[5,40,5]
+   - 187.9909716536189 delta_f[6,40,5] - 169.827885258432 delta_f[7,40,5]
+   - 144.7492791886055 delta_f[8,40,5] - 119.8555257464635 delta_f[9,40,5]
+   = 0
+ def_qf_41_5: - delta_f[1,41,5] - delta_f[2,41,5] - delta_f[3,41,5]
+   - delta_f[4,41,5] - delta_f[5,41,5] - delta_f[6,41,5] - delta_f[7,41,5]
+   - delta_f[8,41,5] - delta_f[9,41,5] + qf[41,5] = 14.0980075800253
+ delta_f_upper_1_41_5: delta_f[1,41,5] <= 2.048444218213263
+ delta_f_upper_2_41_5: delta_f[2,41,5] <= 1.89047884674801
+ delta_f_upper_3_41_5: delta_f[3,41,5] <= 3.92569343955256
+ delta_f_prev_4_41_5: - 1.085057999065612 phi[3,41,5] + delta_f[4,41,5]
+   <= 0
+ delta_f_upper_5_41_5: delta_f[5,41,5] <= 2.685826988890767
+ delta_f_prev_6_41_5: - 3.525998903933214 phi[5,41,5] + delta_f[6,41,5]
+   <= 0
+ delta_f_upper_7_41_5: delta_f[7,41,5] <= 4.276933431130601
+ delta_f_prev_8_41_5: - 8.431379118715995 phi[7,41,5] + delta_f[8,41,5]
+   <= 0
+ vol_from_f_41_5: V[41,5] - 121.0895409279708 delta_f[1,41,5]
+   - 140.9391279137202 delta_f[2,41,5] - 175.7015290726868 delta_f[3,41,5]
+   - 196.9062761474381 delta_f[4,41,5] - 198.1078871427038 delta_f[5,41,5]
+   - 187.9909716536189 delta_f[6,41,5] - 169.827885258432 delta_f[7,41,5]
+   - 144.7492791886055 delta_f[8,41,5] - 119.8555257464635 delta_f[9,41,5]
+   = 0
+ def_qf_42_5: - delta_f[1,42,5] - delta_f[2,42,5] - delta_f[3,42,5]
+   - delta_f[4,42,5] - delta_f[5,42,5] - delta_f[6,42,5] - delta_f[7,42,5]
+   - delta_f[8,42,5] - delta_f[9,42,5] + qf[42,5] = 14.0980075800253
+ delta_f_upper_1_42_5: delta_f[1,42,5] <= 2.048444218213263
+ delta_f_upper_2_42_5: delta_f[2,42,5] <= 1.89047884674801
+ delta_f_upper_3_42_5: delta_f[3,42,5] <= 3.92569343955256
+ delta_f_upper_4_42_5: delta_f[4,42,5] <= 1.085057999065612
+ delta_f_upper_5_42_5: delta_f[5,42,5] <= 2.685826988890767
+ delta_f_prev_6_42_5: - 3.525998903933214 phi[5,42,5] + delta_f[6,42,5]
+   <= 0
+ delta_f_upper_7_42_5: delta_f[7,42,5] <= 4.276933431130601
+ delta_f_prev_8_42_5: - 8.431379118715995 phi[7,42,5] + delta_f[8,42,5]
+   <= 0
+ vol_from_f_42_5: V[42,5] - 121.0895409279708 delta_f[1,42,5]
+   - 140.9391279137202 delta_f[2,42,5] - 175.7015290726868 delta_f[3,42,5]
+   - 196.9062761474381 delta_f[4,42,5] - 198.1078871427038 delta_f[5,42,5]
+   - 187.9909716536189 delta_f[6,42,5] - 169.827885258432 delta_f[7,42,5]
+   - 144.7492791886055 delta_f[8,42,5] - 119.8555257464635 delta_f[9,42,5]
+   = 0
+ def_qf_43_5: - delta_f[1,43,5] - delta_f[2,43,5] - delta_f[3,43,5]
+   - delta_f[4,43,5] - delta_f[5,43,5] - delta_f[6,43,5] - delta_f[7,43,5]
+   - delta_f[8,43,5] - delta_f[9,43,5] + qf[43,5] = 14.0980075800253
+ delta_f_lower_1_43_5: - 2.048444218213263 phi[1,43,5] + delta_f[1,43,5]
+   >= 0
+ delta_f_lower_2_43_5: - 1.89047884674801 phi[2,43,5] + delta_f[2,43,5]
+   >= 0
+ delta_f_prev_3_43_5: - 3.92569343955256 phi[2,43,5] + delta_f[3,43,5]
+   <= 0
+ delta_f_prev_4_43_5: - 1.085057999065612 phi[3,43,5] + delta_f[4,43,5]
+   <= 0
+ delta_f_prev_5_43_5: - 2.685826988890767 phi[4,43,5] + delta_f[5,43,5]
+   <= 0
+ delta_f_prev_6_43_5: - 3.525998903933214 phi[5,43,5] + delta_f[6,43,5]
+   <= 0
+ delta_f_upper_7_43_5: delta_f[7,43,5] <= 4.276933431130601
+ vol_from_f_43_5: V[43,5] - 121.0895409279708 delta_f[1,43,5]
+   - 140.9391279137202 delta_f[2,43,5] - 175.7015290726868 delta_f[3,43,5]
+   - 196.9062761474381 delta_f[4,43,5] - 198.1078871427038 delta_f[5,43,5]
+   - 187.9909716536189 delta_f[6,43,5] - 169.827885258432 delta_f[7,43,5]
+   - 144.7492791886055 delta_f[8,43,5] - 119.8555257464635 delta_f[9,43,5]
+   = 0
+ def_qf_44_5: - delta_f[1,44,5] - delta_f[2,44,5] - delta_f[3,44,5]
+   - delta_f[4,44,5] - delta_f[5,44,5] - delta_f[6,44,5] - delta_f[7,44,5]
+   - delta_f[8,44,5] - delta_f[9,44,5] + qf[44,5] = 14.0980075800253
+ delta_f_upper_1_44_5: delta_f[1,44,5] <= 2.048444218213263
+ delta_f_prev_2_44_5: - 1.89047884674801 phi[1,44,5] + delta_f[2,44,5]
+   <= 0
+ delta_f_upper_3_44_5: delta_f[3,44,5] <= 3.92569343955256
+ delta_f_prev_4_44_5: - 1.085057999065612 phi[3,44,5] + delta_f[4,44,5]
+   <= 0
+ delta_f_upper_5_44_5: delta_f[5,44,5] <= 2.685826988890767
+ delta_f_upper_6_44_5: delta_f[6,44,5] <= 3.525998903933214
+ delta_f_prev_7_44_5: - 4.276933431130601 phi[6,44,5] + delta_f[7,44,5]
+   <= 0
+ delta_f_prev_8_44_5: - 8.431379118715995 phi[7,44,5] + delta_f[8,44,5]
+   <= 0
+ vol_from_f_44_5: V[44,5] - 121.0895409279708 delta_f[1,44,5]
+   - 140.9391279137202 delta_f[2,44,5] - 175.7015290726868 delta_f[3,44,5]
+   - 196.9062761474381 delta_f[4,44,5] - 198.1078871427038 delta_f[5,44,5]
+   - 187.9909716536189 delta_f[6,44,5] - 169.827885258432 delta_f[7,44,5]
+   - 144.7492791886055 delta_f[8,44,5] - 119.8555257464635 delta_f[9,44,5]
+   = 0
+ def_qf_45_5: - delta_f[1,45,5] - delta_f[2,45,5] - delta_f[3,45,5]
+   - delta_f[4,45,5] - delta_f[5,45,5] - delta_f[6,45,5] - delta_f[7,45,5]
+   - delta_f[8,45,5] - delta_f[9,45,5] + qf[45,5] = 14.0980075800253
+ delta_f_upper_1_45_5: delta_f[1,45,5] <= 2.048444218213263
+ delta_f_upper_2_45_5: delta_f[2,45,5] <= 1.89047884674801
+ delta_f_upper_3_45_5: delta_f[3,45,5] <= 3.92569343955256
+ delta_f_upper_4_45_5: delta_f[4,45,5] <= 1.085057999065612
+ delta_f_upper_5_45_5: delta_f[5,45,5] <= 2.685826988890767
+ delta_f_upper_6_45_5: delta_f[6,45,5] <= 3.525998903933214
+ delta_f_upper_7_45_5: delta_f[7,45,5] <= 4.276933431130601
+ delta_f_upper_8_45_5: delta_f[8,45,5] <= 8.431379118715995
+ vol_from_f_45_5: V[45,5] - 121.0895409279708 delta_f[1,45,5]
+   - 140.9391279137202 delta_f[2,45,5] - 175.7015290726868 delta_f[3,45,5]
+   - 196.9062761474381 delta_f[4,45,5] - 198.1078871427038 delta_f[5,45,5]
+   - 187.9909716536189 delta_f[6,45,5] - 169.827885258432 delta_f[7,45,5]
+   - 144.7492791886055 delta_f[8,45,5] - 119.8555257464635 delta_f[9,45,5]
+   = 0
+ def_qf_46_5: - delta_f[1,46,5] - delta_f[2,46,5] - delta_f[3,46,5]
+   - delta_f[4,46,5] - delta_f[5,46,5] - delta_f[6,46,5] - delta_f[7,46,5]
+   - delta_f[8,46,5] - delta_f[9,46,5] + qf[46,5] = 14.0980075800253
+ delta_f_upper_1_46_5: delta_f[1,46,5] <= 2.048444218213263
+ delta_f_prev_2_46_5: - 1.89047884674801 phi[1,46,5] + delta_f[2,46,5]
+   <= 0
+ delta_f_prev_3_46_5: - 3.92569343955256 phi[2,46,5] + delta_f[3,46,5]
+   <= 0
+ delta_f_upper_4_46_5: delta_f[4,46,5] <= 1.085057999065612
+ delta_f_upper_5_46_5: delta_f[5,46,5] <= 2.685826988890767
+ delta_f_upper_6_46_5: delta_f[6,46,5] <= 3.525998903933214
+ delta_f_upper_7_46_5: delta_f[7,46,5] <= 4.276933431130601
+ delta_f_prev_8_46_5: - 8.431379118715995 phi[7,46,5] + delta_f[8,46,5]
+   <= 0
+ vol_from_f_46_5: V[46,5] - 121.0895409279708 delta_f[1,46,5]
+   - 140.9391279137202 delta_f[2,46,5] - 175.7015290726868 delta_f[3,46,5]
+   - 196.9062761474381 delta_f[4,46,5] - 198.1078871427038 delta_f[5,46,5]
+   - 187.9909716536189 delta_f[6,46,5] - 169.827885258432 delta_f[7,46,5]
+   - 144.7492791886055 delta_f[8,46,5] - 119.8555257464635 delta_f[9,46,5]
+   = 0
+ def_qf_47_5: - delta_f[1,47,5] - delta_f[2,47,5] - delta_f[3,47,5]
+   - delta_f[4,47,5] - delta_f[5,47,5] - delta_f[6,47,5] - delta_f[7,47,5]
+   - delta_f[8,47,5] - delta_f[9,47,5] + qf[47,5] = 14.0980075800253
+ delta_f_upper_1_47_5: delta_f[1,47,5] <= 2.048444218213263
+ delta_f_prev_2_47_5: - 1.89047884674801 phi[1,47,5] + delta_f[2,47,5]
+   <= 0
+ delta_f_prev_3_47_5: - 3.92569343955256 phi[2,47,5] + delta_f[3,47,5]
+   <= 0
+ delta_f_prev_4_47_5: - 1.085057999065612 phi[3,47,5] + delta_f[4,47,5]
+   <= 0
+ delta_f_upper_5_47_5: delta_f[5,47,5] <= 2.685826988890767
+ delta_f_upper_6_47_5: delta_f[6,47,5] <= 3.525998903933214
+ delta_f_prev_7_47_5: - 4.276933431130601 phi[6,47,5] + delta_f[7,47,5]
+   <= 0
+ delta_f_upper_8_47_5: delta_f[8,47,5] <= 8.431379118715995
+ vol_from_f_47_5: V[47,5] - 121.0895409279708 delta_f[1,47,5]
+   - 140.9391279137202 delta_f[2,47,5] - 175.7015290726868 delta_f[3,47,5]
+   - 196.9062761474381 delta_f[4,47,5] - 198.1078871427038 delta_f[5,47,5]
+   - 187.9909716536189 delta_f[6,47,5] - 169.827885258432 delta_f[7,47,5]
+   - 144.7492791886055 delta_f[8,47,5] - 119.8555257464635 delta_f[9,47,5]
+   = 0
+ def_qf_48_5: - delta_f[1,48,5] - delta_f[2,48,5] - delta_f[3,48,5]
+   - delta_f[4,48,5] - delta_f[5,48,5] - delta_f[6,48,5] - delta_f[7,48,5]
+   - delta_f[8,48,5] - delta_f[9,48,5] + qf[48,5] = 14.0980075800253
+ delta_f_upper_1_48_5: delta_f[1,48,5] <= 2.048444218213263
+ delta_f_upper_2_48_5: delta_f[2,48,5] <= 1.89047884674801
+ delta_f_upper_3_48_5: delta_f[3,48,5] <= 3.92569343955256
+ delta_f_upper_4_48_5: delta_f[4,48,5] <= 1.085057999065612
+ delta_f_upper_5_48_5: delta_f[5,48,5] <= 2.685826988890767
+ delta_f_prev_6_48_5: - 3.525998903933214 phi[5,48,5] + delta_f[6,48,5]
+   <= 0
+ delta_f_prev_7_48_5: - 4.276933431130601 phi[6,48,5] + delta_f[7,48,5]
+   <= 0
+ delta_f_prev_8_48_5: - 8.431379118715995 phi[7,48,5] + delta_f[8,48,5]
+   <= 0
+ vol_from_f_48_5: V[48,5] - 121.0895409279708 delta_f[1,48,5]
+   - 140.9391279137202 delta_f[2,48,5] - 175.7015290726868 delta_f[3,48,5]
+   - 196.9062761474381 delta_f[4,48,5] - 198.1078871427038 delta_f[5,48,5]
+   - 187.9909716536189 delta_f[6,48,5] - 169.827885258432 delta_f[7,48,5]
+   - 144.7492791886055 delta_f[8,48,5] - 119.8555257464635 delta_f[9,48,5]
+   = 0
+ delta_vr_upper_4_5: delta_vr[4,5] <= 87.15707199999997
+ delta_vr_upper_5_5: delta_vr[5,5] <= 205.3369755000001
+ delta_vr_prev_6_5: - 165.71399 phi[5,32,5] + delta_vr[6,5] <= 0
+ delta_vr_prev_7_5: - 181.5856399999998 phi[6,32,5] + delta_vr[7,5] <= 0
+ delta_vr_prev_8_5: - 305.1090125000001 phi[7,32,5] + delta_vr[8,5] <= 0
+ delta_vr_prev_9_5: - 316.73145 phi[8,32,5] + delta_vr[9,5] <= 0
+ vol32_from_vr_5: V[32,5] - 2.451375718541807 delta_vr[4,5]
+   - 2.591269831964579 delta_vr[5,5] - 4 delta_vr[6,5] - 4 delta_vr[7,5]
+   - 4 delta_vr[8,5] - 4 delta_vr[9,5] = 0
+ balance_vol_33_5: - V[32,5] + V[33,5] + 0.6048 qf[33,5]
+   + 0.6048 qg[1,33,5] = 58.65870528
+ balance_vol_34_5: - V[33,5] + V[34,5] + 0.6912 qf[34,5]
+   + 0.6912 qg[1,34,5] = 56.88880128
+ balance_vol_35_5: - V[34,5] + V[35,5] + 0.6912 qf[35,5]
+   + 0.6912 qg[1,35,5] = 46.99752192
+ balance_vol_36_5: - V[35,5] + V[36,5] + 0.6912 qf[36,5]
+   + 0.6912 qg[1,36,5] = 40.16784384
+ balance_vol_37_5: - V[36,5] + V[37,5] + 0.6048 qf[37,5]
+   + 0.6048 qg[1,37,5] = 25.8479424
+ balance_vol_38_5: - V[37,5] + V[38,5] + 0.6912 qf[38,5]
+   + 0.6912 qg[1,38,5] = 25.4790144
+ balance_vol_39_5: - V[38,5] + V[39,5] + 0.6912 qf[39,5]
+   + 0.6912 qg[1,39,5] = 23.18464512
+ balance_vol_40_5: - V[39,5] + V[40,5] + 0.6912 qf[40,5]
+   + 0.6912 qg[1,40,5] = 20.2110336
+ balance_vol_41_5: - V[40,5] + V[41,5] + 0.6048 qf[41,5]
+   + 0.6048 qg[1,41,5] = 14.4764928
+ balance_vol_42_5: - V[41,5] + V[42,5] + 0.6048 qf[42,5]
+   + 0.6048 qg[1,42,5] = 14.49197568
+ balance_vol_43_5: - V[42,5] + V[43,5] + 0.6048 qf[43,5]
+   + 0.6048 qg[1,43,5] = 12.19016736
+ balance_vol_44_5: - V[43,5] + V[44,5] + 0.6048 qf[44,5]
+   + 0.6048 qg[1,44,5] = 12.27822624
+ balance_vol_45_5: - V[44,5] + V[45,5] + 0.6048 qf[45,5]
+   + 0.6048 qg[1,45,5] = 10.67913504
+ balance_vol_46_5: - V[45,5] + V[46,5] + 0.6912 qf[46,5]
+   + 0.6912 qg[1,46,5] = 11.73325824
+ balance_vol_47_5: - V[46,5] + V[47,5] + 0.6912 qf[47,5]
+   + 0.6912 qg[1,47,5] = 16.3672704
+ balance_vol_48_5: - V[47,5] + V[48,5] + 0.6912 qf[48,5]
+   + 0.6912 qg[1,48,5] = 13.44480768
+ vol_final: V[48,5] >= 4800
+Bounds
+ V[32,5] free
+ V[33,5] free
+ V[34,5] free
+ V[35,5] free
+ V[36,5] free
+ V[37,5] free
+ V[38,5] free
+ V[39,5] free
+ V[40,5] free
+ V[41,5] free
+ V[42,5] free
+ V[43,5] free
+ V[44,5] free
+ V[45,5] free
+ V[46,5] free
+ V[47,5] free
+ V[48,5] free
+ delta_f[1,33,5] free
+ delta_f[1,34,5] free
+ delta_f[1,35,5] free
+ delta_f[1,36,5] free
+ delta_f[1,37,5] free
+ delta_f[1,38,5] free
+ delta_f[1,39,5] free
+ delta_f[1,40,5] free
+ delta_f[1,41,5] free
+ delta_f[1,42,5] free
+ delta_f[1,43,5] free
+ delta_f[1,44,5] free
+ delta_f[1,45,5] free
+ delta_f[1,46,5] free
+ delta_f[1,47,5] free
+ delta_f[1,48,5] free
+ delta_f[2,33,5] free
+ delta_f[2,34,5] free
+ delta_f[2,35,5] free
+ delta_f[2,36,5] free
+ delta_f[2,37,5] free
+ delta_f[2,38,5] free
+ delta_f[2,39,5] free
+ delta_f[2,40,5] free
+ delta_f[2,41,5] free
+ delta_f[2,42,5] free
+ delta_f[2,43,5] free
+ delta_f[2,44,5] free
+ delta_f[2,45,5] free
+ delta_f[2,46,5] free
+ delta_f[2,47,5] free
+ delta_f[2,48,5] free
+ delta_f[3,33,5] free
+ delta_f[3,34,5] free
+ delta_f[3,35,5] free
+ delta_f[3,36,5] free
+ delta_f[3,37,5] free
+ delta_f[3,38,5] free
+ delta_f[3,39,5] free
+ delta_f[3,40,5] free
+ delta_f[3,41,5] free
+ delta_f[3,42,5] free
+ delta_f[3,43,5] free
+ delta_f[3,44,5] free
+ delta_f[3,45,5] free
+ delta_f[3,46,5] free
+ delta_f[3,47,5] free
+ delta_f[3,48,5] free
+ delta_f[4,33,5] free
+ delta_f[4,34,5] free
+ delta_f[4,35,5] free
+ delta_f[4,36,5] free
+ delta_f[4,37,5] free
+ delta_f[4,38,5] free
+ delta_f[4,39,5] free
+ delta_f[4,40,5] free
+ delta_f[4,41,5] free
+ delta_f[4,42,5] free
+ delta_f[4,43,5] free
+ delta_f[4,44,5] free
+ delta_f[4,45,5] free
+ delta_f[4,46,5] free
+ delta_f[4,47,5] free
+ delta_f[4,48,5] free
+ delta_f[5,33,5] free
+ delta_f[5,34,5] free
+ delta_f[5,35,5] free
+ delta_f[5,36,5] free
+ delta_f[5,37,5] free
+ delta_f[5,38,5] free
+ delta_f[5,39,5] free
+ delta_f[5,40,5] free
+ delta_f[5,41,5] free
+ delta_f[5,42,5] free
+ delta_f[5,43,5] free
+ delta_f[5,44,5] free
+ delta_f[5,45,5] free
+ delta_f[5,46,5] free
+ delta_f[5,47,5] free
+ delta_f[5,48,5] free
+ delta_f[6,33,5] free
+ delta_f[6,34,5] free
+ delta_f[6,35,5] free
+ delta_f[6,36,5] free
+ delta_f[6,37,5] free
+ delta_f[6,38,5] free
+ delta_f[6,39,5] free
+ delta_f[6,40,5] free
+ delta_f[6,41,5] free
+ delta_f[6,42,5] free
+ delta_f[6,43,5] free
+ delta_f[6,44,5] free
+ delta_f[6,45,5] free
+ delta_f[6,46,5] free
+ delta_f[6,47,5] free
+ delta_f[6,48,5] free
+ delta_f[7,33,5] free
+ delta_f[7,34,5] free
+ delta_f[7,35,5] free
+ delta_f[7,36,5] free
+ delta_f[7,37,5] free
+ delta_f[7,38,5] free
+ delta_f[7,39,5] free
+ delta_f[7,40,5] free
+ delta_f[7,41,5] free
+ delta_f[7,42,5] free
+ delta_f[7,43,5] free
+ delta_f[7,44,5] free
+ delta_f[7,45,5] free
+ delta_f[7,46,5] free
+ delta_f[7,47,5] free
+ delta_f[7,48,5] free
+ delta_f[8,33,5] free
+ delta_f[8,34,5] free
+ delta_f[8,35,5] free
+ delta_f[8,36,5] free
+ delta_f[8,37,5] free
+ delta_f[8,38,5] free
+ delta_f[8,39,5] free
+ delta_f[8,40,5] free
+ delta_f[8,41,5] free
+ delta_f[8,42,5] free
+ delta_f[8,43,5] free
+ delta_f[8,44,5] free
+ delta_f[8,45,5] free
+ delta_f[8,46,5] free
+ delta_f[8,47,5] free
+ delta_f[8,48,5] free
+ delta_f[9,33,5] free
+ delta_f[9,34,5] free
+ delta_f[9,35,5] free
+ delta_f[9,36,5] free
+ delta_f[9,37,5] free
+ delta_f[9,38,5] free
+ delta_f[9,39,5] free
+ delta_f[9,40,5] free
+ delta_f[9,41,5] free
+ delta_f[9,42,5] free
+ delta_f[9,44,5] free
+ delta_f[9,45,5] free
+ delta_f[9,46,5] free
+ delta_f[9,47,5] free
+ delta_f[9,48,5] free
+ delta_vr[4,5] free
+ delta_vr[5,5] free
+ delta_vr[6,5] free
+ delta_vr[7,5] free
+ delta_vr[8,5] free
+ delta_vr[9,5] free
+ qf[33,5] free
+ qf[34,5] free
+ qf[35,5] free
+ qf[36,5] free
+ qf[37,5] free
+ qf[38,5] free
+ qf[39,5] free
+ qf[40,5] free
+ qf[41,5] free
+ qf[42,5] free
+ qf[43,5] free
+ qf[44,5] free
+ qf[45,5] free
+ qf[46,5] free
+ qf[47,5] free
+ qf[48,5] free
+Binaries
+ phi[1,35,5] phi[1,43,5] phi[1,44,5] phi[1,46,5] phi[1,47,5] phi[2,34,5]
+ phi[2,35,5] phi[2,43,5] phi[2,46,5] phi[2,47,5] phi[3,36,5] phi[3,37,5]
+ phi[3,39,5] phi[3,40,5] phi[3,41,5] phi[3,43,5] phi[3,44,5] phi[3,47,5]
+ phi[4,35,5] phi[4,37,5] phi[4,38,5] phi[4,43,5] phi[5,32,5] phi[5,35,5]
+ phi[5,39,5] phi[5,41,5] phi[5,42,5] phi[5,43,5] phi[5,48,5] phi[6,32,5]
+ phi[6,35,5] phi[6,39,5] phi[6,44,5] phi[6,47,5] phi[6,48,5] phi[7,32,5]
+ phi[7,34,5] phi[7,38,5] phi[7,40,5] phi[7,41,5] phi[7,42,5] phi[7,44,5]
+ phi[7,46,5] phi[7,48,5] phi[8,32,5]
+End

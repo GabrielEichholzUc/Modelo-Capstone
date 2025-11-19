@@ -32,24 +32,33 @@ alpha = pd.read_csv('resultados/decision_alpha.csv')
 generacion = pd.read_csv('resultados/generacion.csv')
 energia_total = pd.read_csv('resultados/energia_total.csv')
 
-# Intentar cargar volúmenes por uso
-try:
-    volumenes_uso = pd.read_csv('resultados/volumenes_por_uso.csv')
-    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(volumenes_uso)} volúmenes por uso, {len(generacion)} generación, {len(energia_total)} GEN[i,t]")
-except FileNotFoundError:
-    volumenes_uso = None
-    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(generacion)} generación, {len(energia_total)} GEN[i,t]")
-    print("  ⚠ Archivo volumenes_por_uso.csv no encontrado (ejecuta optimización primero)")
+# Cargar beta y delta (nuevo en modelo LaTeX)
+beta = pd.read_csv('resultados/decision_beta.csv')
+delta = pd.read_csv('resultados/decision_delta.csv')
 
-# Cargar parámetros para obtener V_min
+# Intentar cargar phi_zonas (nuevo en modelo LaTeX)
+try:
+    phi_zonas = pd.read_csv('resultados/phi_zonas.csv')
+    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(generacion)} generación, {len(energia_total)} GEN[i,t], {len(phi_zonas)} phi zonas")
+except FileNotFoundError:
+    phi_zonas = None
+    print(f"✓ Datos cargados: {len(volumenes)} volúmenes lago, {len(riego)} riego, {len(generacion)} generación, {len(energia_total)} GEN[i,t]")
+
+# Cargar parámetros para obtener V_MIN, V_MAX
 try:
     from cargar_datos_5temporadas import cargar_parametros_excel
     parametros = cargar_parametros_excel()
-    V_min = parametros.get('V_min', 1400)
-    print(f"✓ V_min cargado: {V_min} hm³")
+    V_MIN = parametros.get('V_MIN', 1400)
+    V_MAX = parametros.get('V_MAX', 5582)
+    print(f"✓ Parámetros cargados: V_MIN={V_MIN} hm³, V_MAX={V_MAX} hm³")
 except:
-    V_min = 1400
-    print(f"⚠ No se pudo cargar V_min, usando valor por defecto: {V_min} hm³")
+    V_MIN = 1400
+    V_MAX = 5582
+    print(f"⚠ No se pudieron cargar parámetros, usando valores por defecto: V_MIN={V_MIN} hm³, V_MAX={V_MAX} hm³")
+
+# Compatibilidad con código antiguo
+V_min = V_MIN
+volumenes_uso = None  # Ya no se usa en modelo LaTeX
 
 # Parámetros del modelo
 T = list(range(1, 6))  # 5 temporadas
@@ -85,8 +94,12 @@ for t in T:
             linewidth=2, color=colors[t-1], label=f'Temporada {t}', marker='', alpha=0.9)
 
 # Línea horizontal del volumen mínimo
-ax.axhline(y=V_min, color='red', linestyle='-.', linewidth=2, alpha=0.7, 
-           label=f'V_min = {V_min:.0f} hm³')
+ax.axhline(y=V_MIN, color='red', linestyle='-.', linewidth=2, alpha=0.7, 
+           label=f'V_MIN = {V_MIN:.0f} hm³')
+
+# Línea horizontal del volumen máximo
+ax.axhline(y=V_MAX, color='orange', linestyle='-.', linewidth=2, alpha=0.7, 
+           label=f'V_MAX = {V_MAX:.0f} hm³')
 
 # Líneas verticales para separar temporadas
 for t in range(1, 5):
@@ -124,57 +137,47 @@ plt.close()
 # Gráfico 2 omitido por solicitud del usuario
 
 # ============================================================
-# GRÁFICO 3: EVOLUCIÓN ve[u,w,t] - TODAS LAS TEMPORADAS JUNTAS
+# GRÁFICO 3: ZONAS PHI ACTIVADAS (NUEVO - MODELO LATEX)
 # ============================================================
 
-print("📊 Generando gráfico 3: Volúmenes por uso (todas temporadas agregadas)...")
+print("📊 Generando gráfico 3: Zonas φ activadas (Modelo LaTeX)...")
 
-if volumenes_uso is not None:
+if phi_zonas is not None and len(phi_zonas) > 0:
     fig, ax = plt.subplots(figsize=(20, 8))
-
-    # Plotear cada uso con color diferente
-    colors_usos = {1: '#e74c3c', 2: '#3498db'}  # Rojo para riego, azul para generación
     
-    for u in U:
-        data_u = volumenes_uso[volumenes_uso['Uso'] == u]
+    # Crear scatter plot de zonas activadas
+    for t in T:
+        data_t = phi_zonas[phi_zonas['Temporada'] == t]
+        if len(data_t) == 0:
+            continue
         
-        for t in T:
-            data_t = data_u[data_u['Temporada'] == t]
-            if len(data_t) == 0:
-                continue
-            
-            x_offset = (t - 1) * 48
-            semanas = data_t['Semana'].values + x_offset
-            volumen = data_t['Volumen_hm3'].values
-            
-            # Solo mostrar label en la primera temporada
-            label = f'{nombres_usos[u]}' if t == 1 else ''
-            ax.plot(semanas, volumen, 
-                    linewidth=2.5, color=colors_usos[u], label=label, 
-                    marker='', alpha=0.85)
-
+        x_offset = (t - 1) * 48
+        semanas = data_t['Semana'].values + x_offset
+        zonas = data_t['Zona'].values
+        
+        ax.scatter(semanas, zonas, alpha=0.6, s=30, 
+                  color=colors[t-1], label=f'Temporada {t}')
+    
     # Líneas verticales para separar temporadas
     for t in range(1, 5):
         semana_fin = t * 48
         ax.axvline(x=semana_fin, color='gray', linestyle='--', alpha=0.4, linewidth=1.5)
-
-    # Añadir etiquetas de temporadas
+    
     ax.set_xticks([24, 72, 120, 168, 216])
     ax.set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5'], fontsize=11, fontweight='bold')
-
     ax.set_xlabel('Temporadas', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Volumen por Uso (hm³)', fontsize=12, fontweight='bold')
-    ax.set_title('Evolución de Volúmenes por Uso - Temporadas Agregadas', 
+    ax.set_ylabel('Zona k', fontsize=12, fontweight='bold')
+    ax.set_title('Zonas de Linealización Completas (φ=1) - Modelo LaTeX', 
                  fontsize=14, fontweight='bold', pad=20)
-    ax.legend(fontsize=12, loc='best', framealpha=0.9)
+    ax.legend(fontsize=11, loc='best', ncol=5)
     ax.grid(True, alpha=0.3)
-
+    
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/3_volumenes_uso_todas_temporadas.png', dpi=300, bbox_inches='tight')
-    print(f"  ✓ Guardado: {output_dir}/3_volumenes_uso_todas_temporadas.png")
+    plt.savefig(f'{output_dir}/3_phi_zonas_activadas.png', dpi=300, bbox_inches='tight')
+    print(f"  ✓ Guardado: {output_dir}/3_phi_zonas_activadas.png")
     plt.close()
 else:
-    print("  ⚠ Saltando gráfico 3: no hay datos de volúmenes por uso")
+    print("  ⚠ Saltando gráfico 3: no hay zonas phi activadas (φ siempre 0)")
 
 # Gráfico 4 omitido por solicitud del usuario
 
