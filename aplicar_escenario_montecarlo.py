@@ -14,7 +14,7 @@ import sys
 import shutil
 from datetime import datetime
 
-ARCHIVO_EXCEL = 'Parametros_Finales.xlsx'
+ARCHIVO_EXCEL = 'Parametros_Nuevos.xlsx'
 BACKUP_DIR = 'backups_parametros'
 ESCENARIOS_DIR = 'escenarios_montecarlo'
 TODOS_ESCENARIOS_FILE = 'escenarios_montecarlo/todos_escenarios.xlsx'
@@ -64,23 +64,29 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
             escenario_file = f'{ESCENARIOS_DIR}/escenario_{num_escenario:03d}.xlsx'
             df_escenario = pd.read_excel(escenario_file)
             print(f"  ✓ Cargado desde {escenario_file}")
-        
-        # Renombrar columnas S1-S48 a Semana_1-Semana_48 si es necesario
-        if 'S1' in df_escenario.columns:
-            rename_dict = {f'S{i}': f'Semana_{i}' for i in range(1, 49)}
-            df_escenario = df_escenario.rename(columns=rename_dict)
+    
+    # Renombrar columnas a formato estándar (aplicar DESPUÉS de cargar, para ambos casos)
+    # Renombrar columnas S1-S48 a Semana_1-Semana_48 si es necesario
+    if 'S1' in df_escenario.columns:
+        rename_dict = {f'S{i}': f'Semana_{i}' for i in range(1, 49)}
+        df_escenario = df_escenario.rename(columns=rename_dict)
+    # Si tiene columnas numéricas (1, 2, 3...), renombrar a Semana_1, Semana_2, etc.
+    elif 1 in df_escenario.columns:
+        rename_dict = {i: f'Semana_{i}' for i in range(1, 49)}
+        df_escenario = df_escenario.rename(columns=rename_dict)
     
     print(f"  Datos: {len(df_escenario)} filas")
     
     # Cargar el Excel de parámetros para obtener el formato original
     print(f"\n📂 Cargando {ARCHIVO_EXCEL}...")
-    df_qa_original = pd.read_excel(ARCHIVO_EXCEL, sheet_name='QA_a,w,t')
+    df_qa_original = pd.read_excel(ARCHIVO_EXCEL, sheet_name='QA_a,w,t', header=None)
     
-    # Guardar nombres de columnas originales (con fechas)
-    columnas_originales = df_qa_original.columns.tolist()
+    # Guardar nombres de columnas originales (primera fila con fechas)
+    columnas_originales = df_qa_original.iloc[0, :].tolist()
     
     print(f"  ✓ Formato original detectado: {len(columnas_originales)} columnas")
-    print(f"    Columnas: {columnas_originales[:5]} ... {columnas_originales[-3:]}")
+    print(f"    Encabezado 1: {columnas_originales[:3]} ... {columnas_originales[-2:]}")
+    print(f"    Encabezado 2: {df_qa_original.iloc[1, :5].tolist()} ... {df_qa_original.iloc[1, -2:].tolist()}")
     
     # Crear nueva hoja QA_a,w,t con el escenario
     print(f"\n🔄 Transformando escenario al formato QA_a,w,t...")
@@ -91,9 +97,13 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
     # Crear lista de filas para el nuevo DataFrame
     filas_qa = []
     
-    # Primera fila: encabezado con números de semana
-    fila_header = ['t', 'a'] + [float(i) for i in range(1, 49)]
-    filas_qa.append(fila_header)
+    # Primera fila: encabezado con nombres de fechas (igual que en original)
+    fila_header1 = columnas_originales  # ['Temporada', 'Afluente', 'abr 1', 'abr 8', ..., 'mar 24']
+    filas_qa.append(fila_header1)
+    
+    # Segunda fila: encabezado con números de semana
+    fila_header2 = ['t', 'a'] + [float(i) for i in range(1, 49)]
+    filas_qa.append(fila_header2)
     
     # Para cada temporada
     for t in range(1, 6):
@@ -117,12 +127,12 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
             fila = [t, nombres_afluentes[a_idx]] + valores
             filas_qa.append(fila)
     
-    # Crear DataFrame con las columnas originales
-    df_qa_nuevo = pd.DataFrame(filas_qa, columns=columnas_originales)
+    # Crear DataFrame con las columnas originales (sin encabezado, será agregado manualmente)
+    df_qa_nuevo = pd.DataFrame(filas_qa)
     
     print(f"  ✓ DataFrame QA_a,w,t creado: {df_qa_nuevo.shape}")
-    print(f"  Primeras filas:")
-    print(df_qa_nuevo.head(3))
+    print(f"  Primeras 5 filas:")
+    print(df_qa_nuevo.head())
     
     # Cargar todas las hojas del Excel
     excel_data = pd.read_excel(ARCHIVO_EXCEL, sheet_name=None)
@@ -138,7 +148,11 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
     
     with pd.ExcelWriter(ARCHIVO_EXCEL, engine='openpyxl') as writer:
         for sheet_name, df_sheet in excel_data.items():
-            df_sheet.to_excel(writer, sheet_name=sheet_name, index=False)
+            # Para QA_a,w,t, escribir sin encabezado (ya lo tenemos en los datos)
+            if sheet_name == 'QA_a,w,t':
+                df_sheet.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
+            else:
+                df_sheet.to_excel(writer, sheet_name=sheet_name, index=False)
     
     print(f"  ✓ Archivo actualizado exitosamente")
     

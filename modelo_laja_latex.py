@@ -50,12 +50,13 @@ class ModeloLajaLatex:
         
         # Variables (Formulación LaTeX)
         self.V = {}  # V_{w,t}: Volumen del lago al final de semana w, temporada t [hm³]
+        self.V_30Nov = {}  # V_30Nov_{t}: Volumen del lago al 30 Nov (inicio temporada t) [hm³]
         
         # Variables de linealización (zonas)
         self.phi_var = {}  # φ_{k,w,t}: Binaria, 1 si zona k completa en semana w, temporada t
+        self.phi_30 = {}  # φ_30_{k,t}: Binaria para linealización al 30 Nov
         self.delta_f = {}  # Δf_{k,w,t}: Filtración incremental en zona k [m³/s]
-        self.delta_vr = {}  # Δvr_{k,t}: Volumen riego incremental en zona k, temporada t [hm³]
-        self.delta_vg = {}  # Δvg_{k,t}: Volumen generación incremental en zona k, temporada t [hm³]
+        self.delta_v30 = {}  # Δv30_{k,t}: Incremento de volumen al 30 Nov en zona k, temporada t [hm³]
         
         # Volúmenes disponibles
         self.VR = {}  # VR_{w,t}: Volumen disponible para riego [hm³]
@@ -129,11 +130,14 @@ class ModeloLajaLatex:
         # Volúmenes del lago (sin límite superior estricto, controlado por delta)
         self.V = self.model.addVars(self.W, self.T, lb=0, name="V")
         
+        # Volumen al 30 de Noviembre (inicio de cada temporada)
+        self.V_30Nov = self.model.addVars(self.T, lb=0, name="V_30Nov")
+        
         # Variables de linealización (phi y deltas)
         self.phi_var = self.model.addVars(K_zonas, self.W, self.T, vtype=GRB.BINARY, name="phi")
+        self.phi_30 = self.model.addVars(K_zonas, self.T, vtype=GRB.BINARY, name="phi_30")
         self.delta_f = self.model.addVars(K_zonas, self.W, self.T, lb=0, name="delta_f")
-        self.delta_vr = self.model.addVars(K_zonas, self.T, lb=0, name="delta_vr")
-        self.delta_vg = self.model.addVars(K_zonas, self.T, lb=0, name="delta_vg")
+        self.delta_v30 = self.model.addVars(K_zonas, self.T, lb=0, name="delta_v30")
         
         # Volúmenes disponibles por uso
         self.VR_0 = self.model.addVars(self.T, lb=0, name="VR_0")
@@ -163,10 +167,10 @@ class ModeloLajaLatex:
         self.GEN = self.model.addVars(self.I, self.T, lb=0, name="GEN")
         
         print("✓ Variables creadas correctamente")
-        print(f"  Variables phi: {len(K_zonas) * 48 * 5:,}")
+        print(f"  Variables phi (filtraciones): {len(K_zonas) * 48 * 5:,}")
+        print(f"  Variables phi_30 (30 Nov): {len(K_zonas) * 5:,}")
         print(f"  Variables delta_f: {len(K_zonas) * 48 * 5:,}")
-        print(f"  Variables delta_vr: {len(K_zonas) * 5:,}")
-        print(f"  Variables delta_vg: {len(K_zonas) * 5:,}")
+        print(f"  Variables delta_v30: {len(K_zonas) * 5:,}")
 
     def crear_restricciones(self):
         """Crea todas las restricciones según formulación LaTeX"""
@@ -225,76 +229,82 @@ class ModeloLajaLatex:
                     self.V[w, t] == v_expr,
                     name=f"vol_from_f_{w}_{t}")
         
-        # ========== 2. DEFINICIÓN DE VOLÚMENES DE RIEGO (30 NOV) ==========
-        print("  2. Volúmenes disponibles de riego...")
+        # ========== 2. DEFINICIÓN DE VOLÚMENES DE RIEGO Y GENERACIÓN (30 NOV) ==========
+        print("  2. Volúmenes disponibles de riego y generación (30 Nov)...")
+        
+        # Definir V_30Nov[t] para cada temporada
         for t in self.T:
-            # VR_0[t] = vr_1 + Σ Δvr[k,t]
-            self.model.addConstr(
-                self.VR_0[t] == self.vr_k[1] + gp.quicksum(
-                    self.delta_vr[k, t] for k in K_zonas
-                ),
-                name=f"def_VR0_{t}")
+            if t == 1:
+                # V_30Nov[1] = V_30Nov_1 (parámetro conocido)
+                self.model.addConstr(
+                    self.V_30Nov[t] == self.V_30Nov_1,
+                    name=f"def_V30Nov_1")
+            else:
+                # V_30Nov[t] = V[32, t-1] (volumen al 30 Nov de temporada anterior)
+                self.model.addConstr(
+                    self.V_30Nov[t] == self.V[32, t-1],
+                    name=f"def_V30Nov_{t}")
+        
+        # Linealización CONJUNTA de V_30Nov[t], VR_0[t] y VG_0[t]
+        # Todas usan las MISMAS variables Δv30[k,t] y φ_30[k,t]
+        for t in self.T:
+            # V_30Nov[t] = v_1 + Σ (v_{k+1} - v_k) × Δv30[k,t]
+            v_expr = self.v_k[1]
+            for k in K_zonas:
+                v_k = self.v_k[k]
+                v_k_next = self.v_k[k + 1]
+                v_expr += (v_k_next - v_k) * self.delta_v30[k, t]
             
+            self.model.addConstr(
+                self.V_30Nov[t] == v_expr,
+                name=f"V30Nov_from_v_{t}")
+            
+            # VR_0[t] = vr_1 + Σ (vr_{k+1} - vr_k) × Δv30[k,t]
+            vr_expr = self.vr_k[1]
             for k in K_zonas:
                 vr_k = self.vr_k[k]
                 vr_k_next = self.vr_k[k + 1]
-                
-                # Δvr[k,t] ≤ vr_{k+1} - vr_k
-                self.model.addConstr(
-                    self.delta_vr[k, t] <= vr_k_next - vr_k,
-                    name=f"delta_vr_upper_{k}_{t}")
-                
-                # Δvr[k,t] ≥ φ[k,32,t] * (vr_{k+1} - vr_k)
-                self.model.addConstr(
-                    self.delta_vr[k, t] >= self.phi_var[k, 32, t] * (vr_k_next - vr_k),
-                    name=f"delta_vr_lower_{k}_{t}")
-                
-                # Δvr[k,t] ≤ φ[k-1,32,t] * (vr_{k+1} - vr_k)
-                if k > 1:
-                    self.model.addConstr(
-                        self.delta_vr[k, t] <= self.phi_var[k-1, 32, t] * (vr_k_next - vr_k),
-                        name=f"delta_vr_prev_{k}_{t}")
+                vr_expr += (vr_k_next - vr_k) * self.delta_v30[k, t]
             
-            # NOTA: La restricción V[32,t] = f(Δvr) se OMITE
-            # porque crea conflicto con V[32,t] definido por la filtración.
-            # VR_0[t] se usa solo para controlar el reparto de agua, no el volumen del lago.
-        
-        # ========== 3. DEFINICIÓN DE VOLÚMENES DE GENERACIÓN (30 NOV) ==========
-        print("  3. Volúmenes disponibles de generación...")
-        for t in self.T:
-            # VG_0[t] = vg_1 + Σ Δvg[k,t]
             self.model.addConstr(
-                self.VG_0[t] == self.vg_k[1] + gp.quicksum(
-                    self.delta_vg[k, t] for k in K_zonas
-                ),
-                name=f"def_VG0_{t}")
+                self.VR_0[t] == vr_expr,
+                name=f"VR0_from_v_{t}")
             
+            # VG_0[t] = vg_1 + Σ (vg_{k+1} - vg_k) × Δv30[k,t]
+            vg_expr = self.vg_k[1]
             for k in K_zonas:
                 vg_k = self.vg_k[k]
                 vg_k_next = self.vg_k[k + 1]
+                vg_expr += (vg_k_next - vg_k) * self.delta_v30[k, t]
+            
+            self.model.addConstr(
+                self.VG_0[t] == vg_expr,
+                name=f"VG0_from_v_{t}")
+            
+            # Restricciones de linealización para Δv30[k,t]
+            for k in K_zonas:
+                v_k = self.v_k[k]
+                v_k_next = self.v_k[k + 1]
                 
-                # Δvg[k,t] ≤ vg_{k+1} - vg_k
+                # Δv30[k,t] ≤ v_{k+1} - v_k
                 self.model.addConstr(
-                    self.delta_vg[k, t] <= vg_k_next - vg_k,
-                    name=f"delta_vg_upper_{k}_{t}")
+                    self.delta_v30[k, t] <= v_k_next - v_k,
+                    name=f"delta_v30_upper_{k}_{t}")
                 
-                # Δvg[k,t] ≥ φ[k,32,t] * (vg_{k+1} - vg_k)
+                # Δv30[k,t] ≥ φ_30[k,t] * (v_{k+1} - v_k)
                 self.model.addConstr(
-                    self.delta_vg[k, t] >= self.phi_var[k, 32, t] * (vg_k_next - vg_k),
-                    name=f"delta_vg_lower_{k}_{t}")
+                    self.delta_v30[k, t] >= self.phi_30[k, t] * (v_k_next - v_k),
+                    name=f"delta_v30_lower_{k}_{t}")
                 
-                # Δvg[k,t] ≤ φ[k-1,32,t] * (vg_{k+1} - vg_k)
+                # Δv30[k,t] ≤ φ_30[k-1,t] * (v_{k+1} - v_k)
                 if k > 1:
                     self.model.addConstr(
-                        self.delta_vg[k, t] <= self.phi_var[k-1, 32, t] * (vg_k_next - vg_k),
-                        name=f"delta_vg_prev_{k}_{t}")
-            
-            # NOTA: La restricción V[32,t] = f(Δvg) se OMITE
-            # porque crea conflicto con V[32,t] definido por la filtración.
-            # VG_0[t] se usa solo para controlar el reparto de agua, no el volumen del lago.
+                        self.delta_v30[k, t] <= self.phi_30[k-1, t] * (v_k_next - v_k),
+                        name=f"delta_v30_prev_{k}_{t}")
+                # Para k=1, φ_30[0,t] = 1 implícito (siempre se incluye zona base)
         
-        # ========== 4. GENERACIÓN EN EL TORO ==========
-        print("  4. Generación en El Toro...")
+        # ========== 3. GENERACIÓN EN EL TORO ==========
+        print("  3. Generación en El Toro...")
         for t in self.T:
             for w in self.W:
                 # qg[1,w,t] = qer[w,t] + qeg[w,t]
@@ -302,8 +312,8 @@ class ModeloLajaLatex:
                     self.qg[1, w, t] == self.qer[w, t] + self.qeg[w, t],
                     name=f"gen_eltoro_{w}_{t}")
         
-        # ========== 5. BALANCE DE VOLUMEN EN EL LAGO ==========
-        print("  5. Balance de volumen del lago...")
+        # ========== 4. BALANCE DE VOLUMEN EN EL LAGO ==========
+        print("  4. Balance de volumen del lago...")
         for t in self.T:
             for w in self.W:
                 if w == 1 and t == 1:
@@ -322,8 +332,8 @@ class ModeloLajaLatex:
                         self.V[w, t] == self.V[w-1, t] + (self.QA[1, w, t] - self.qg[1, w, t] - self.qf[w, t]) * self.FS[w] / 1000000,
                         name=f"balance_vol_{w}_{t}")
         
-        # ========== 6. VOLÚMENES MÍNIMOS Y MÁXIMOS DEL LAGO ==========
-        print("  6. Volúmenes mínimos y máximos del lago...")
+        # ========== 5. VOLÚMENES MÍNIMOS Y MÁXIMOS DEL LAGO ==========
+        print("  5. Volúmenes mínimos y máximos del lago...")
         for t in self.T:
             for w in self.W:
                 # V[w,t] ≥ V_MIN - M * β[w,t]
@@ -341,8 +351,8 @@ class ModeloLajaLatex:
             self.V[48, 5] >= self.V_F,
             name="vol_final")
         
-        # ========== 7. INCLUSIÓN DE FILTRACIONES ==========
-        print("  7. Inclusión de filtraciones en Laja...")
+        # ========== 6. INCLUSIÓN DE FILTRACIONES ==========
+        print("  6. Inclusión de filtraciones en Laja...")
         for t in self.T:
             for w in self.W:
                 # qg[16,w,t] = qf[w,t]
@@ -350,8 +360,8 @@ class ModeloLajaLatex:
                     self.qg[16, w, t] == self.qf[w, t],
                     name=f"laja_filt_{w}_{t}")
         
-        # ========== 8. BALANCE DE FLUJO EN REDES (Explícito por nodo) ==========
-        print("  8. Balance de flujo en redes...")
+        # ========== 7. BALANCE DE FLUJO EN REDES (Explícito por nodo) ==========
+        print("  7. Balance de flujo en redes...")
         for t in self.T:
             for w in self.W:
                 # ABANICO (Central 2)
@@ -435,8 +445,8 @@ class ModeloLajaLatex:
                     self.qv[1, w, t] == 0,
                     name=f"no_vert_eltoro_{w}_{t}")
         
-        # ========== 9. CUMPLIMIENTO DE DEMANDAS DE RIEGO ==========
-        print("  9. Cumplimiento de demandas de riego...")
+        # ========== 8. CUMPLIMIENTO DE DEMANDAS DE RIEGO ==========
+        print("  8. Cumplimiento de demandas de riego...")
         for t in self.T:
             for w in self.W:
                 for d in self.D:
@@ -446,8 +456,8 @@ class ModeloLajaLatex:
                             self.QD.get((d, j, w), 0) - self.qp[d, j, w, t] == self.deficit[d, j, w, t] - self.superavit[d, j, w, t],
                             name=f"balance_riego_{d}_{j}_{w}_{t}")
         
-        # ========== 10. ACTIVACIÓN DE PENALIZACIONES POR CONVENIO ==========
-        print("  10. Activación de penalizaciones por convenio...")
+        # ========== 9. ACTIVACIÓN DE PENALIZACIONES POR CONVENIO ==========
+        print("  9. Activación de penalizaciones por convenio...")
         for t in self.T:
             for w in self.W:
                 # Canal Abanico (j=4)
@@ -492,8 +502,8 @@ class ModeloLajaLatex:
                         self.deficit[d, 3, w, t] <= self.M_bigM * self.eta[d, 3, w, t],
                         name=f"bigM_saltos_{d}_{w}_{t}")
         
-        # ========== 11. CAPACIDADES ==========
-        print("  11. Capacidades de centrales...")
+        # ========== 10. CAPACIDADES ==========
+        print("  10. Capacidades de centrales...")
         for t in self.T:
             for i in self.I:
                 for w in self.W:
@@ -502,8 +512,8 @@ class ModeloLajaLatex:
                         self.qg[i, w, t] <= self.gamma[i],
                         name=f"cap_max_{i}_{w}_{t}")
         
-        # ========== 12. DEFINICIÓN DE ENERGÍA GENERADA ==========
-        print("  12. Definición de energía generada...")
+        # ========== 11. DEFINICIÓN DE ENERGÍA GENERADA ==========
+        print("  11. Definición de energía generada...")
         for t in self.T:
             for i in self.I:
                 # GEN[i,t] = Σ_w qg[i,w,t] * ρ_i * FS_w / (3600 * 1000)
@@ -541,8 +551,13 @@ class ModeloLajaLatex:
             for w in self.W for t in self.T
         )
 
+        penalidad_alejamiento = gp.quicksum(
+            self.deficit[d, j, w, t]
+            for d in self.D for j in self.J for w in self.W for t in self.T
+        )
+
         self.model.setObjective(
-            generacion_total - penalidad_incumplimiento - penalidad_umbral_min - penalidad_umbral_max,
+            generacion_total - penalidad_incumplimiento - penalidad_umbral_min - penalidad_umbral_max - penalidad_alejamiento,
             GRB.MAXIMIZE
         )
         
@@ -639,6 +654,20 @@ class ModeloLajaLatex:
         ])
         df_volumenes.to_csv(f"{carpeta_salida}/volumenes_lago.csv", index=False)
         
+        # 3b. Volúmenes al 30 de Noviembre
+        df_v30nov = pd.DataFrame([
+            {'Temporada': t, 'V_30Nov_hm3': self.V_30Nov[t].X}
+            for t in self.T
+        ])
+        df_v30nov.to_csv(f"{carpeta_salida}/volumenes_30nov.csv", index=False)
+        
+        # 3c. Volúmenes disponibles por uso
+        df_volumenes_uso = pd.DataFrame([
+            {'Temporada': t, 'VR_0_hm3': self.VR_0[t].X, 'VG_0_hm3': self.VG_0[t].X}
+            for t in self.T
+        ])
+        df_volumenes_uso.to_csv(f"{carpeta_salida}/volumenes_por_uso.csv", index=False)
+        
         # 4. Riego
         df_riego = pd.DataFrame([
             {
@@ -694,5 +723,20 @@ class ModeloLajaLatex:
         ])
         if len(df_phi) > 0:
             df_phi.to_csv(f"{carpeta_salida}/phi_zonas.csv", index=False)
+        
+        # 8. Filtraciones
+        df_filtraciones = pd.DataFrame([
+            {'Semana': w, 'Temporada': t, 'Filtracion_m3s': self.qf[w, t].X}
+            for w in self.W for t in self.T
+        ])
+        df_filtraciones.to_csv(f"{carpeta_salida}/filtraciones.csv", index=False)
+        
+        # 9. Filtraciones incrementales por zona (delta_f)
+        df_delta_f = pd.DataFrame([
+            {'Zona': k, 'Semana': w, 'Temporada': t, 'Delta_f_m3s': self.delta_f[k, w, t].X}
+            for k in K_zonas for w in self.W for t in self.T if self.delta_f[k, w, t].X > 0.001
+        ])
+        if len(df_delta_f) > 0:
+            df_delta_f.to_csv(f"{carpeta_salida}/filtraciones_incrementales.csv", index=False)
         
         print("✓ Resultados exportados exitosamente")

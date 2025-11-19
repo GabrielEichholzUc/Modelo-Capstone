@@ -36,14 +36,6 @@ energia_total = pd.read_csv('resultados/energia_total.csv')
 beta = pd.read_csv('resultados/decision_beta.csv')
 delta = pd.read_csv('resultados/decision_delta.csv')
 
-# Intentar cargar filtraciones
-try:
-    filtraciones = pd.read_csv('resultados/filtraciones.csv')
-    print(f"✓ Filtraciones cargadas: {len(filtraciones)} registros")
-except FileNotFoundError:
-    filtraciones = None
-    print("⚠ No se encontró archivo de filtraciones")
-
 # Intentar cargar phi_zonas (nuevo en modelo LaTeX)
 try:
     phi_zonas = pd.read_csv('resultados/phi_zonas.csv')
@@ -528,89 +520,6 @@ print(f"  ✓ Guardado: {output_dir}/{filename}")
 plt.close()
 
 # ============================================================
-# GRÁFICO ADICIONAL: FILTRACIONES POR TEMPORADA
-# ============================================================
-
-if filtraciones is not None:
-    print("\n📊 Generando gráfico de filtraciones...")
-    
-    # Gráfico 1: Filtraciones por temporada (5 subplots)
-    fig, axes = plt.subplots(5, 1, figsize=(18, 20), sharex=True)
-    fig.suptitle('Evolución de Filtraciones por Temporada', fontsize=18, fontweight='bold', y=0.995)
-    
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-    
-    for idx, t in enumerate(T):
-        ax = axes[idx]
-        data_t = filtraciones[filtraciones['Temporada'] == t]
-        
-        # Plot principal
-        ax.plot(data_t['Semana'], data_t['Filtracion_m3s'], 
-                linewidth=2.5, color=colors[idx], marker='o', markersize=4, alpha=0.9)
-        
-        # Sombreado bajo la curva
-        ax.fill_between(data_t['Semana'], 0, data_t['Filtracion_m3s'], 
-                        alpha=0.2, color=colors[idx])
-        
-        # Estadísticas
-        promedio = data_t['Filtracion_m3s'].mean()
-        maximo = data_t['Filtracion_m3s'].max()
-        minimo = data_t['Filtracion_m3s'].min()
-        
-        ax.axhline(y=promedio, color='red', linestyle='--', linewidth=1.5, alpha=0.7, 
-                  label=f'Promedio: {promedio:.2f} m³/s')
-        
-        # Configuración del subplot
-        ax.set_ylabel('Filtración (m³/s)', fontsize=12, fontweight='bold')
-        ax.set_title(f'Temporada {t} - Min: {minimo:.2f} | Max: {maximo:.2f} | Avg: {promedio:.2f} m³/s', 
-                    fontsize=13, fontweight='bold')
-        ax.grid(True, alpha=0.3, linestyle='--')
-        ax.legend(loc='upper right', fontsize=10)
-        
-        # Límites
-        ax.set_xlim(0.5, 48.5)
-        ax.set_ylim(bottom=0)
-    
-    axes[-1].set_xlabel('Semana', fontsize=12, fontweight='bold')
-    plt.tight_layout()
-    filename = '8_filtraciones_por_temporada.png'
-    plt.savefig(f'{output_dir}/{filename}', dpi=300, bbox_inches='tight')
-    print(f"  ✓ Guardado: {output_dir}/{filename}")
-    plt.close()
-    
-    # Gráfico 2: Todas las temporadas comparadas
-    fig, ax = plt.subplots(figsize=(20, 8))
-    
-    for t in T:
-        data_t = filtraciones[filtraciones['Temporada'] == t]
-        x_offset = (t - 1) * 48
-        semanas = data_t['Semana'].values + x_offset
-        
-        ax.plot(semanas, data_t['Filtracion_m3s'], 
-                linewidth=2, color=colors[t-1], label=f'Temporada {t}', 
-                marker='o', markersize=3, alpha=0.9)
-    
-    # Separadores verticales entre temporadas
-    for t in range(1, 5):
-        ax.axvline(x=t*48, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
-    
-    ax.set_xlabel('Semana (Agregada por Temporada)', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Filtración (m³/s)', fontsize=12, fontweight='bold')
-    ax.set_title('Evolución de Filtraciones - Todas las Temporadas', fontsize=16, fontweight='bold')
-    ax.legend(loc='best', fontsize=11)
-    ax.grid(True, alpha=0.3, linestyle='--')
-    ax.set_xlim(-2, 242)
-    ax.set_ylim(bottom=0)
-    
-    plt.tight_layout()
-    filename = '9_filtraciones_comparadas.png'
-    plt.savefig(f'{output_dir}/{filename}', dpi=300, bbox_inches='tight')
-    print(f"  ✓ Guardado: {output_dir}/{filename}")
-    plt.close()
-else:
-    print("\n⚠ No se generaron gráficos de filtraciones (archivo no encontrado)")
-
-# ============================================================
 # RESUMEN
 # ============================================================
 
@@ -626,7 +535,4 @@ print("  4. Volúmenes por uso - Por temporada (2 usos × 5 temporadas)")
 print("  5. Demanda vs Provisión - Por canal, todas las temporadas")
 print("  6. Demanda vs Provisión - Por canal, demandante y temporada")
 print("  7. Generación por central y temporada (barras agrupadas)")
-if filtraciones is not None:
-    print("  8. Filtraciones por temporada (5 gráficos)")
-    print("  9. Filtraciones - Todas las temporadas comparadas")
 print("\n" + "="*70)

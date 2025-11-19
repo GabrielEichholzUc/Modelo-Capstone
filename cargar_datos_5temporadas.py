@@ -84,7 +84,12 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
     df_fk = pd.read_excel(archivo_excel, sheet_name='f_k')
     parametros['FC'] = {}  # Se mantiene FC internamente para compatibilidad
     
-    if 'k' in df_fk.columns and 'f_k' in df_fk.columns:
+    # Buscar columnas: 'k' y 'f' (no 'f_k')
+    if 'k' in df_fk.columns and 'f' in df_fk.columns:
+        for _, row in df_fk.iterrows():
+            k = int(row['k'])
+            parametros['FC'][k] = float(row['f'])
+    elif 'k' in df_fk.columns and 'f_k' in df_fk.columns:
         for _, row in df_fk.iterrows():
             k = int(row['k'])
             parametros['FC'][k] = float(row['f_k'])
@@ -102,7 +107,12 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
     df_vk = pd.read_excel(archivo_excel, sheet_name='v_k')
     parametros['VC'] = {}  # Se mantiene VC internamente para compatibilidad
     
-    if 'k' in df_vk.columns and 'v_k' in df_vk.columns:
+    # Buscar columnas: 'k' y 'v' (no 'v_k')
+    if 'k' in df_vk.columns and 'v' in df_vk.columns:
+        for _, row in df_vk.iterrows():
+            k = int(row['k'])
+            parametros['VC'][k] = float(row['v'])
+    elif 'k' in df_vk.columns and 'v_k' in df_vk.columns:
         for _, row in df_vk.iterrows():
             k = int(row['k'])
             parametros['VC'][k] = float(row['v_k'])
@@ -121,8 +131,12 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
     df_vgk = pd.read_excel(archivo_excel, sheet_name='vg_k')
     parametros['VUC'] = {}
     
-    # vr_k (Riego, u=1)
-    if 'k' in df_vrk.columns and 'vr_k' in df_vrk.columns:
+    # vr_k (Riego, u=1) - Buscar columnas: 'k' y 'VR' (no 'vr_k')
+    if 'k' in df_vrk.columns and 'VR' in df_vrk.columns:
+        for _, row in df_vrk.iterrows():
+            k = int(row['k'])
+            parametros['VUC'][(1, k)] = float(row['VR'])
+    elif 'k' in df_vrk.columns and 'vr_k' in df_vrk.columns:
         for _, row in df_vrk.iterrows():
             k = int(row['k'])
             parametros['VUC'][(1, k)] = float(row['vr_k'])
@@ -132,8 +146,12 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
                 k = int(row.iloc[0])
                 parametros['VUC'][(1, k)] = float(row.iloc[1])
     
-    # vg_k (Generación, u=2)
-    if 'k' in df_vgk.columns and 'vg_k' in df_vgk.columns:
+    # vg_k (Generación, u=2) - Buscar columnas: 'k' y 'VG' (no 'vg_k')
+    if 'k' in df_vgk.columns and 'VG' in df_vgk.columns:
+        for _, row in df_vgk.iterrows():
+            k = int(row['k'])
+            parametros['VUC'][(2, k)] = float(row['VG'])
+    elif 'k' in df_vgk.columns and 'vg_k' in df_vgk.columns:
         for _, row in df_vgk.iterrows():
             k = int(row['k'])
             parametros['VUC'][(2, k)] = float(row['vg_k'])
@@ -364,7 +382,11 @@ def mostrar_resumen(parametros):
     
     print(f"\n💰 Penalizaciones:")
     print(f"  - psi (incumplimiento): {parametros.get('psi', 'N/A'):,.0f} GWh")
-    print(f"  - phi (déficit): {parametros.get('phi', 'N/A'):,.0f} GWh")
+    nu_val = parametros.get('nu', parametros.get('phi', 'N/A'))
+    if isinstance(nu_val, (int, float)):
+        print(f"  - nu (umbral V_MIN/V_MAX): {nu_val:,.0f} GWh")
+    else:
+        print(f"  - nu (umbral V_MIN/V_MAX): {nu_val} GWh")
     
     print(f"\n📏 Cotas del lago:")
     print(f"  - Total cotas: {len(parametros['VC'])}")

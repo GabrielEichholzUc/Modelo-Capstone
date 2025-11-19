@@ -30,14 +30,14 @@ except ImportError:
 # CONFIGURACIÓN
 # ============================================================
 
-ARCHIVO_EXCEL = 'Parametros_Finales.xlsx'
-HOJA_HISTORICOS = 'Caudales historicos'
+ARCHIVO_EXCEL = 'Parametros_Nuevos.xlsx'
+HOJA_HISTORICOS = 'Caudal Histórico semanal'
 OUTPUT_DIR = 'escenarios_montecarlo'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 NUM_ESCENARIOS = 100  # Número de escenarios a generar
 SEED = 42  # Semilla para reproducibilidad
-METODO = 'lognormal'  # Opciones: 'empirico', 'normal', 'lognormal', 'bootstrap'
+METODO = 'bootstrap'  # Opciones: 'empirico', 'normal', 'lognormal', 'bootstrap'
 
 np.random.seed(SEED)
 
@@ -53,12 +53,45 @@ print("\n📂 Cargando datos históricos...")
 
 df_historicos = pd.read_excel(ARCHIVO_EXCEL, sheet_name=HOJA_HISTORICOS)
 
-print(f"  ✓ Datos cargados: {len(df_historicos)} registros")
-print(f"  Afluentes únicos: {sorted(df_historicos['a'].unique())}")
-print(f"  Años históricos: {len(df_historicos['Año'].unique())} años")
+# Adaptación: Este archivo tiene columnas 'CENTRAL', 'AÑO' y fechas
+# Necesitamos crear columnas 'a' (afluente) y transformar a formato numérico
 
-# Verificar que tengamos las 48 semanas
-semanas = [col for col in df_historicos.columns if isinstance(col, int)]
+# Mapeo de nombres de centrales a índices de afluentes
+centrales_a_afluente = {
+    'ELTORO': 1,
+    'ABANICO': 2,
+    'ANTUCO': 3,
+    'TUCAPEL': 4,
+    'CANECOL': 5,
+    'LAJA_I': 6
+}
+
+# Crear columna 'a' (índice de afluente)
+if 'CENTRAL' in df_historicos.columns:
+    df_historicos['a'] = df_historicos['CENTRAL'].map(centrales_a_afluente)
+elif 'Central' in df_historicos.columns:
+    df_historicos['a'] = df_historicos['Central'].map(centrales_a_afluente)
+
+# Renombrar 'AÑO' a 'Año' si es necesario
+if 'AÑO' in df_historicos.columns:
+    df_historicos = df_historicos.rename(columns={'AÑO': 'Año'})
+
+# Identificar columnas de fechas (las 48 semanas)
+# Formato: 'abr 1', 'abr 8', ..., 'mar 24'
+columnas_fechas = [col for col in df_historicos.columns 
+                   if isinstance(col, str) and any(mes in col.lower() 
+                   for mes in ['abr', 'may', 'jun', 'jul', 'ago', 'sep', 
+                              'oct', 'nov', 'dic', 'ene', 'feb', 'mar'])]
+
+# Renombrar columnas de fechas a números de semana (1-48)
+semanas_dict = {col: idx + 1 for idx, col in enumerate(columnas_fechas[:48])}
+df_historicos = df_historicos.rename(columns=semanas_dict)
+
+semanas = list(range(1, len(columnas_fechas[:48]) + 1))
+
+print(f"  ✓ Datos cargados: {len(df_historicos)} registros")
+print(f"  Afluentes únicos: {sorted(df_historicos['a'].dropna().unique())}")
+print(f"  Años históricos: {len(df_historicos['Año'].unique())} años")
 print(f"  Semanas disponibles: {len(semanas)}")
 
 # ============================================================
@@ -68,12 +101,23 @@ print(f"  Semanas disponibles: {len(semanas)}")
 print("\n🔄 Transformando datos a formato largo...")
 
 # Convertir a formato largo (tidy data)
+# Mantener solo columnas relevantes
+columnas_id = ['a', 'Año']
+if 'CENTRAL' in df_historicos.columns:
+    columnas_id.append('CENTRAL')
+elif 'Central' in df_historicos.columns:
+    columnas_id.append('Central')
+
 df_long = df_historicos.melt(
-    id_vars=['a', 'Central', 'Año'],
+    id_vars=columnas_id,
     value_vars=semanas,
     var_name='Semana',
     value_name='Caudal_m3s'
 )
+
+# Filtrar filas donde 'a' no sea NaN (afluentes válidos)
+df_long = df_long[df_long['a'].notna()].copy()
+df_long['a'] = df_long['a'].astype(int)
 
 print(f"  ✓ Datos transformados: {len(df_long)} observaciones")
 print(f"  Ejemplo:\n{df_long.head(3)}")
