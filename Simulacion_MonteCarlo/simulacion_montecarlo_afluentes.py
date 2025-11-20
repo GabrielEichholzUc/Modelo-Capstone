@@ -299,7 +299,13 @@ print(f"    Escenario promedio (mediana): {caudales_promedio[len(escenarios)//2]
 
 print(f"\n💾 Guardando escenarios ordenados en formato Excel...")
 
-for n, escenario in enumerate(escenarios_ordenados):
+# Seleccionar 10 escenarios representativos distribuidos uniformemente
+# (percentiles: 5, 15, 25, 35, 45, 55, 65, 75, 85, 95)
+indices_seleccionados = [int(NUM_ESCENARIOS * p / 100) for p in [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]]
+
+for idx, n in enumerate(indices_seleccionados):
+    escenario = escenarios_ordenados[n]
+    
     # Crear DataFrame para este escenario en el formato del modelo
     datos_escenario = []
     
@@ -312,12 +318,13 @@ for n, escenario in enumerate(escenarios_ordenados):
     
     df_escenario = pd.DataFrame(datos_escenario)
     
-    # Guardar solo algunos escenarios de muestra (los primeros 10)
-    if n < 10:
-        output_file = f'{OUTPUT_DIR}/escenario_{n+1:03d}.xlsx'
-        df_escenario.to_excel(output_file, index=False)
-        if n == 0:
-            print(f"  ✓ Guardado: {output_file}")
+    # Guardar con número de escenario original (del 1 al 100)
+    output_file = f'{OUTPUT_DIR}/escenario_{n+1:03d}.xlsx'
+    df_escenario.to_excel(output_file, index=False)
+    if idx == 0:
+        print(f"  ✓ Guardando 10 escenarios representativos...")
+    if idx == 9:
+        print(f"  ✓ Guardados escenarios: #{indices_seleccionados[0]+1}, #{indices_seleccionados[4]+1}, #{indices_seleccionados[-1]+1}, etc.")
 
 # Guardar todos los escenarios en un solo archivo
 print(f"\n💾 Guardando todos los escenarios en un archivo consolidado...")
@@ -455,10 +462,10 @@ print("✅ SIMULACIÓN COMPLETADA")
 print("=" * 70)
 print(f"\nArchivos generados:")
 print(f"  📁 Directorio: {OUTPUT_DIR}/")
-print(f"  📄 {NUM_ESCENARIOS} escenarios individuales (primeros 10 en archivos separados)")
-print(f"     ├─ escenario_001.xlsx: PESIMISTA (caudal promedio: {caudales_promedio[0]:.2f} m³/s)")
-print(f"     ├─ escenario_005.xlsx: INTERMEDIO")
-print(f"     └─ escenario_010.xlsx: OPTIMISTA (caudal promedio: {caudales_promedio[9]:.2f} m³/s)")
+print(f"  📄 10 escenarios representativos en archivos separados (de {NUM_ESCENARIOS} generados)")
+print(f"     ├─ escenario_{indices_seleccionados[0]+1:03d}.xlsx: MÁS PESIMISTA (caudal promedio: {caudales_promedio[indices_seleccionados[0]]:.2f} m³/s)")
+print(f"     ├─ escenario_{indices_seleccionados[4]+1:03d}.xlsx: MEDIO")
+print(f"     └─ escenario_{indices_seleccionados[-1]+1:03d}.xlsx: MÁS OPTIMISTA (caudal promedio: {caudales_promedio[indices_seleccionados[-1]]:.2f} m³/s)")
 print(f"  📄 todos_escenarios.xlsx (consolidado con TODOS los {NUM_ESCENARIOS} escenarios, ordenados)")
 print(f"  📄 escenario_promedio.xlsx (promedio de todos, para usar en el modelo)")
 print(f"  📊 comparacion_historicos_simulados.png (validación visual)")
