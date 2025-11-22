@@ -111,7 +111,7 @@ def aplicar_escenario(num_escenario=None, usar_promedio=False):
     filas_qa.append(fila_header2)
     
     # Para cada temporada
-    for t in range(1, 6):
+    for t in range(1, 7):
         # Obtener datos de esta temporada del escenario
         df_temp = df_escenario[df_escenario['Temporada'] == t].copy()
         df_temp = df_temp.sort_values('Afluente')

@@ -145,12 +145,36 @@ print(f"  ✓ Datos transformados: {len(df_long)} observaciones")
 print(f"  Ejemplo:\n{df_long.head(3)}")
 
 # ============================================================
-# CALCULAR ESTADÍSTICAS POR AFLUENTE Y SEMANA
+# DEFINIR ESTACIONES HIDROLÓGICAS
 # ============================================================
 
-print("\n📊 Calculando estadísticas por afluente y semana...")
+def asignar_estacion(semana):
+    """
+    Asigna la estación hidrológica según la semana (12 semanas por estación)
+    
+    Año hidrológico en Chile comienza en abril:
+    - Otoño (ABR-JUN): semanas 1-12
+    - Invierno (JUL-SEP): semanas 13-24  
+    - Primavera (OCT-DIC): semanas 25-36
+    - Verano (ENE-MAR): semanas 37-48
+    """
+    if 1 <= semana <= 12:
+        return 'Otoño'
+    elif 13 <= semana <= 24:
+        return 'Invierno'
+    elif 25 <= semana <= 36:
+        return 'Primavera'
+    elif 37 <= semana <= 48:
+        return 'Verano'
+    else:
+        return None
 
-# Agrupar por afluente y semana
+print("\n📊 Calculando estadísticas por afluente, estación y semana...")
+
+# Agregar columna de estación
+df_long['Estacion'] = df_long['Semana'].apply(asignar_estacion)
+
+# Agrupar por afluente y semana (mantener stats por semana para backward compatibility)
 stats_df = df_long.groupby(['a', 'Semana'])['Caudal_m3s'].agg([
     ('media', 'mean'),
     ('std', 'std'),
@@ -161,8 +185,19 @@ stats_df = df_long.groupby(['a', 'Semana'])['Caudal_m3s'].agg([
     ('q75', lambda x: x.quantile(0.75)),
     ('n_obs', 'count')
 ]).reset_index()
+stats_df['Estacion'] = stats_df['Semana'].apply(asignar_estacion)
+
+# Calcular estadísticas por estación (para bootstrap estacional)
+stats_estacion_df = df_long.groupby(['a', 'Estacion'])['Caudal_m3s'].agg([
+    ('media', 'mean'),
+    ('std', 'std'),
+    ('min', 'min'),
+    ('max', 'max'),
+    ('n_obs', 'count')
+]).reset_index()
 
 print(f"  ✓ Estadísticas calculadas para {len(stats_df)} combinaciones afluente-semana")
+print(f"  ✓ Estadísticas estacionales calculadas para {len(stats_estacion_df)} combinaciones afluente-estación")
 print(f"\n  Resumen por afluente:")
 for a in sorted(stats_df['a'].unique()):
     stats_a = stats_df[stats_df['a'] == a]
@@ -173,14 +208,15 @@ for a in sorted(stats_df['a'].unique()):
 # FUNCIÓN PARA GENERAR ESCENARIOS
 # ============================================================
 
-def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
+def generar_escenario_montecarlo(df_historicos, stats_df, stats_estacion_df, metodo='empirico'):
     """
-    Genera un escenario sintético de caudales para 5 temporadas
+    Genera un escenario sintético de caudales para 6 temporadas
     
     Parámetros:
     -----------
     df_historicos : DataFrame con datos históricos en formato largo
     stats_df : DataFrame con estadísticas por afluente y semana
+    stats_estacion_df : DataFrame con estadísticas por afluente y estación
     metodo : str, método de muestreo ('empirico', 'normal', 'lognormal', 'bootstrap')
     
     Retorna:
@@ -191,10 +227,16 @@ def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
     
     for a in range(1, 7):  # 6 afluentes
         for w in range(1, 49):  # 48 semanas
-            for t in range(1, 6):  # 5 temporadas
+            # Determinar estación de esta semana
+            estacion = asignar_estacion(w)
+            
+            for t in range(1, 7):  # 6 temporadas
                 
                 # Obtener datos históricos para este afluente y semana
                 datos_hist = df_long[(df_long['a'] == a) & (df_long['Semana'] == w)]['Caudal_m3s'].values
+                
+                # Para bootstrap estacional: obtener datos de toda la estación
+                datos_hist_estacion = df_long[(df_long['a'] == a) & (df_long['Estacion'] == estacion)]['Caudal_m3s'].values
                 
                 if len(datos_hist) == 0:
                     # Si no hay datos, usar 0
@@ -232,12 +274,18 @@ def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
                         valor = 0.0
                 
                 elif metodo == 'bootstrap':
-                    # Bootstrap con perturbación gaussiana
-                    valor_base = np.random.choice(datos_hist)
-                    stats_row = stats_df[(stats_df['a'] == a) & (stats_df['Semana'] == w)]
+                    # Bootstrap estacional con perturbación gaussiana
+                    # Muestrear de toda la estación (no solo la semana específica)
+                    if len(datos_hist_estacion) > 0:
+                        valor_base = np.random.choice(datos_hist_estacion)
+                    else:
+                        valor_base = np.random.choice(datos_hist) if len(datos_hist) > 0 else 0.0
+                    
+                    # Usar estadísticas estacionales para la perturbación
+                    stats_row = stats_estacion_df[(stats_estacion_df['a'] == a) & (stats_estacion_df['Estacion'] == estacion)]
                     if len(stats_row) > 0:
-                        sigma = stats_row['std'].values[0] * 0.3  # 30% de la std como ruido
-                        if not pd.isna(sigma):
+                        sigma = stats_row['std'].values[0] * 0.3  # 30% de la std estacional como ruido
+                        if not pd.isna(sigma) and sigma > 0:
                             perturbacion = np.random.normal(0, sigma)
                             valor = valor_base + perturbacion
                             valor = max(0, valor)
@@ -259,12 +307,18 @@ def generar_escenario_montecarlo(df_historicos, stats_df, metodo='empirico'):
 # ============================================================
 
 print(f"\n🎲 Generando {NUM_ESCENARIOS} escenarios usando método '{METODO}'...")
+if METODO == 'bootstrap':
+    print(f"  → Usando bootstrap estacional (12 semanas por estación)")
+    print(f"     • Otoño (ABR-JUN): semanas 1-12")
+    print(f"     • Invierno (JUL-SEP): semanas 13-24")
+    print(f"     • Primavera (OCT-DIC): semanas 25-36")
+    print(f"     • Verano (ENE-MAR): semanas 37-48")
 
 escenarios = []
 for n in range(NUM_ESCENARIOS):
     if (n + 1) % 20 == 0:
         print(f"  → Generado escenario {n + 1}/{NUM_ESCENARIOS}...")
-    escenario = generar_escenario_montecarlo(df_long, stats_df, metodo=METODO)
+    escenario = generar_escenario_montecarlo(df_long, stats_df, stats_estacion_df, metodo=METODO)
     escenarios.append(escenario)
 
 print(f"  ✓ {len(escenarios)} escenarios generados")
@@ -332,7 +386,7 @@ print(f"\n💾 Guardando todos los escenarios en un archivo consolidado...")
 with pd.ExcelWriter(f'{OUTPUT_DIR}/todos_escenarios.xlsx') as writer:
     for n, escenario in enumerate(escenarios_ordenados):  # TODOS los escenarios (100)
         datos_escenario = []
-        for t in range(1, 6):
+        for t in range(1, 7):
             for a in range(1, 7):
                 fila = {'Afluente': a, 'Temporada': t}
                 for w in range(1, 49):
@@ -436,13 +490,13 @@ print(f"\n💾 Creando escenario promedio para usar en el modelo...")
 escenario_promedio = {}
 for a in range(1, 7):
     for w in range(1, 49):
-        for t in range(1, 6):
+        for t in range(1, 7):
             valores = [escenario[(a, w, t)] for escenario in escenarios_ordenados]
             escenario_promedio[(a, w, t)] = np.mean(valores)
 
 # Guardar en formato compatible con el modelo
 datos_promedio = []
-for t in range(1, 6):
+for t in range(1, 7):
     for a in range(1, 7):
         fila = {'Afluente': a, 'Temporada': t}
         for w in range(1, 49):

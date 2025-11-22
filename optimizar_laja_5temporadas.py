@@ -1,5 +1,5 @@
 """
-Script principal para optimizar el modelo de 10 temporadas de la cuenca del Laja
+Script principal para optimizar el modelo de 6 temporadas de la cuenca del Laja
 Utiliza la formulación LaTeX con linealización por zonas progresivas
 """
 
@@ -9,10 +9,10 @@ import time
 
 def main():
     """
-    Función principal para ejecutar la optimización de 10 temporadas
+    Función principal para ejecutar la optimización de 6 temporadas
     """
     print("\n" + "="*70)
-    print(" "*10 + "OPTIMIZACIÓN CUENCA DEL LAJA - 10 TEMPORADAS")
+    print(" "*10 + "OPTIMIZACIÓN CUENCA DEL LAJA - 6 TEMPORADAS")
     print(" "*10 + "Convenio Hidroeléctricas y Riegos")
     print("="*70 + "\n")
     
@@ -42,8 +42,8 @@ def main():
     print("PASO 4: Ejecutando optimización...")
     print("-" * 70)
     
-    # Configuración de optimización (ajustada para modelo de 10 años)
-    tiempo_limite = 7200  # 2 horas (el modelo es 2x más grande)
+    # Configuración de optimización
+    tiempo_limite = 3600  # 1 hora
     gap = 0.02  # 2% de optimalidad
     
     print(f"\nConfiguración:")

@@ -241,13 +241,13 @@ def cargar_parametros_excel(archivo_excel="Parametros_Nuevos.xlsx"):
     except Exception as e:
         print(f"  ⚠ Error cargando hoja 'QA_a,w,t': {e}")
         # Si falla, llenar con ceros
-        for t in range(1, 6):
+        for t in range(1, 7):
             for a in range(1, 7):  # Ahora incluye afluente 6
                 for w in range(1, 49):
                     parametros['QA'][(a, w, t)] = 0.0
     
     print(f"  Total cargados: {len(parametros['QA'])} valores de afluentes")
-    print(f"  Afluentes: 1-6, Semanas: 1-48, Temporadas: 1-5")
+    print(f"  Afluentes: 1-6, Semanas: 1-48, Temporadas: 1-6")
     
     # Mostrar ejemplos
     print(f"  Ejemplo QA[a=1,w=1,t=1] = {parametros['QA'][(1,1,1)]:.2f} m³/s")
@@ -397,11 +397,11 @@ def mostrar_resumen(parametros):
     print(f"  - Total registros: {len(parametros['QA'])}")
     print(f"  - Afluentes: 1-6 (El Toro, Abanico, Antuco, Tucapel, Canecol, Laja I)")
     print(f"  - Semanas por temporada: 48")
-    print(f"  - Temporadas: 5")
+    print(f"  - Temporadas: 6")
     
     # Promedios por afluente y temporada
     afluentes_nombres = ['El Toro', 'Abanico', 'Antuco', 'Tucapel', 'Canecol', 'Laja I']
-    for t in range(1, 6):
+    for t in range(1, 7):
         print(f"\n  Temporada {t}:")
         for a in range(1, 7):  # Ahora incluye el afluente 6
             valores = [parametros['QA'][(a, w, t)] for w in range(1, 49) if (a, w, t) in parametros['QA']]
