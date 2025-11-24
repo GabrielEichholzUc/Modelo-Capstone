@@ -17,11 +17,11 @@ class ModeloLajaLatex:
         Inicializa el modelo de optimización para la cuenca del Laja
         Siguiendo formulación LaTeX con linealización por zonas
         """
-        self.model = gp.Model("Convenio_Laja_5Temporadas_LaTeX")
+        self.model = gp.Model("Convenio_Laja_6Temporadas_LaTeX")
         
         # Conjuntos
         self.S = None  # Simulaciones
-        self.T = list(range(1, 6))  # Temporadas (1-5)
+        self.T = list(range(1, 7))  # Temporadas (1-6)
         self.W = list(range(1, 49))  # Semanas hidrológicas por temporada
         self.D = [1, 2, 3]  # Demandas (1:Primeros, 2:Segundos, 3:Saltos del Laja)
         self.I = list(range(1, 17))  # Centrales (1-16)
@@ -196,8 +196,13 @@ class ModeloLajaLatex:
             k = idx + 1  # Zona 1-indexada
             self.f_k[k] = FC_dict[k_original]
             self.v_k[k] = VC_dict[k_original]
-            self.vr_k[k] = VUC_dict.get((1, k_original), 0)  # Riego (u=1)
-            self.vg_k[k] = VUC_dict.get((2, k_original), 0)  # Generación (u=2)
+            # vr_k corresponde a índices impares: 1,3,5,7,...
+            # vg_k corresponde a índices pares: 2,4,6,8,...
+            # Para k=1 buscar VUC[(1,1)], k=2 buscar VUC[(1,3)], k=3 buscar VUC[(1,5)]...
+            vr_index = 2*k - 1  # 1→1, 2→3, 3→5, 4→7...
+            vg_index = 2*k      # 1→2, 2→4, 3→6, 4→8...
+            self.vr_k[k] = VUC_dict.get((1, vr_index), 0)  # Riego (u=1, índices impares)
+            self.vg_k[k] = VUC_dict.get((2, vg_index), 0)  # Generación (u=2, índices pares)
         
         self.QA = dict_parametros.get('QA', {})
         self.QD = dict_parametros.get('QD', {})
@@ -402,6 +407,46 @@ class ModeloLajaLatex:
                     self.qg[1, w, t] == self.qer[w, t] + self.qeg[w, t],
                     name=f"gen_eltoro_{w}_{t}")
         
+        # ========== 3b. BALANCE DE VOLÚMENES POR USO (VR Y VG) ==========
+        print("  3b. Balance de volúmenes por uso (VR y VG)...")
+        for t in self.T:
+            for w in self.W:
+                if w == 1:
+                    # Primera semana: partir de volúmenes iniciales
+                    # VR[1,t] = VR_0[t] - qer[1,t] * FS[1] / 10^6
+                    self.model.addConstr(
+                        self.VR[w, t] == self.VR_0[t] - self.qer[w, t] * self.FS[w] / 1000000,
+                        name=f"balance_VR_1_{t}")
+                    
+                    # VG[1,t] = VG_0[t] - qeg[1,t] * FS[1] / 10^6
+                    self.model.addConstr(
+                        self.VG[w, t] == self.VG_0[t] - self.qeg[w, t] * self.FS[w] / 1000000,
+                        name=f"balance_VG_1_{t}")
+                else:
+                    # Semanas posteriores: partir de semana anterior
+                    # VR[w,t] = VR[w-1,t] - qer[w,t] * FS[w] / 10^6
+                    self.model.addConstr(
+                        self.VR[w, t] == self.VR[w-1, t] - self.qer[w, t] * self.FS[w] / 1000000,
+                        name=f"balance_VR_{w}_{t}")
+                    
+                    # VG[w,t] = VG[w-1,t] - qeg[w,t] * FS[w] / 10^6
+                    self.model.addConstr(
+                        self.VG[w, t] == self.VG[w-1, t] - self.qeg[w, t] * self.FS[w] / 1000000,
+                        name=f"balance_VG_{w}_{t}")
+        
+        # Restricción adicional: volúmenes finales no negativos (ya garantizado por lb=0 en definición de variables)
+        # Pero podemos agregar explícitamente para claridad:
+        for t in self.T:
+            # VR[48,t] ≥ 0  (sobrante de riego no negativo)
+            self.model.addConstr(
+                self.VR[48, t] >= 0,
+                name=f"VR_final_nonneg_{t}")
+            
+            # VG[48,t] ≥ 0  (sobrante de generación no negativo)
+            self.model.addConstr(
+                self.VG[48, t] >= 0,
+                name=f"VG_final_nonneg_{t}")
+        
         # ========== 4. BALANCE DE VOLUMEN EN EL LAGO ==========
         print("  4. Balance de volumen del lago...")
         for t in self.T:
@@ -436,9 +481,9 @@ class ModeloLajaLatex:
                     self.V[w, t] <= self.V_MAX + self.M_bigM * self.delta[w, t],
                     name=f"vol_max_{w}_{t}")
         
-        # V[48,5] ≥ V_F (Volumen final esperado)
+        # V[48,6] ≥ V_F (Volumen final esperado al término de la última temporada)
         self.model.addConstr(
-            self.V[48, 5] >= self.V_F,
+            self.V[48, 6] >= self.V_F,
             name="vol_final")
         
         # ========== 6. INCLUSIÓN DE FILTRACIONES ==========
@@ -720,12 +765,36 @@ class ModeloLajaLatex:
         ])
         df_v30nov.to_csv(f"{carpeta_salida}/volumenes_30nov.csv", index=False)
         
-        # 3c. Volúmenes disponibles por uso
+        # 3c. Volúmenes disponibles por uso (iniciales)
         df_volumenes_uso = pd.DataFrame([
             {'Temporada': t, 'VR_0_hm3': self.VR_0[t].X, 'VG_0_hm3': self.VG_0[t].X}
             for t in self.T
         ])
         df_volumenes_uso.to_csv(f"{carpeta_salida}/volumenes_por_uso.csv", index=False)
+        
+        # 3d. Evolución de volúmenes VR y VG por semana
+        df_vr_vg = pd.DataFrame([
+            {
+                'Semana': w,
+                'Temporada': t,
+                'VR_hm3': self.VR[w, t].X,
+                'VG_hm3': self.VG[w, t].X
+            }
+            for w in self.W for t in self.T
+        ])
+        df_vr_vg.to_csv(f"{carpeta_salida}/volumenes_vr_vg.csv", index=False)
+        
+        # 3e. Extracciones por uso
+        df_extracciones = pd.DataFrame([
+            {
+                'Semana': w,
+                'Temporada': t,
+                'qer_m3s': self.qer[w, t].X,
+                'qeg_m3s': self.qeg[w, t].X
+            }
+            for w in self.W for t in self.T
+        ])
+        df_extracciones.to_csv(f"{carpeta_salida}/extracciones_por_uso.csv", index=False)
         
         # 4. Riego
         df_riego = pd.DataFrame([

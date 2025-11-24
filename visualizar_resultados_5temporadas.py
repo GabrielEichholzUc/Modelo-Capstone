@@ -1,5 +1,5 @@
 """
-Script para visualizar resultados del modelo de optimización - 5 temporadas
+Script para visualizar resultados del modelo de optimización - 6 temporadas
 Genera gráficos de:
 - Evolución de volúmenes del lago V[w,t]
 - Evolución de volúmenes por uso ve[u,w,t]
@@ -7,10 +7,17 @@ Genera gráficos de:
 """
 
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Backend sin GUI para evitar bloqueos
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import numpy as np
 import os
+import sys
+
+# Configurar codificación UTF-8 para la salida estándar
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 # Configuración de estilo
 plt.style.use('seaborn-v0_8-darkgrid')
@@ -35,6 +42,11 @@ energia_total = pd.read_csv('resultados/energia_total.csv')
 # Cargar beta y delta (nuevo en modelo LaTeX)
 beta = pd.read_csv('resultados/decision_beta.csv')
 delta = pd.read_csv('resultados/decision_delta.csv')
+
+# Cargar volúmenes VR y VG (nuevo)
+vr_vg = pd.read_csv('resultados/volumenes_vr_vg.csv')
+volumenes_uso = pd.read_csv('resultados/volumenes_por_uso.csv')
+extracciones_uso = pd.read_csv('resultados/extracciones_por_uso.csv')
 
 # Intentar cargar filtraciones
 try:
@@ -69,7 +81,7 @@ V_min = V_MIN
 volumenes_uso = None  # Ya no se usa en modelo LaTeX
 
 # Parámetros del modelo
-T = list(range(1, 6))  # 5 temporadas
+T = list(range(1, 7))  # 6 temporadas
 W = list(range(1, 49))  # 48 semanas
 U = [1, 2]  # Usos: 1=Riego, 2=Generación
 J = [1, 2, 3, 4]  # Canales: 1=RieZaCo, 2=RieTucapel, 3=RieSaltos, 4=Abanico
@@ -92,9 +104,9 @@ gs = fig.add_gridspec(4, 3, hspace=0.4, wspace=0.35,
                       left=0.08, right=0.96, top=0.93, bottom=0.06)
 
 # Colores por temporada
-colors_temp = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+colors_temp = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
 nombres_temp = {1: 'Temp 1 (Abr-Jul)', 2: 'Temp 2 (Ago-Oct)', 
-                3: 'Temp 3 (Nov-Ene)', 4: 'Temp 4 (Feb-Mar)', 5: 'Temp 5 (Abr-Jul)'}
+                3: 'Temp 3 (Nov-Ene)', 4: 'Temp 4 (Feb-Mar)', 5: 'Temp 5 (Abr-Jul)', 6: 'Temp 6 (Ago-Oct)'}
 
 # ========== PANEL 1: VOLUMEN LAGO (todas las temporadas) ==========
 ax1 = fig.add_subplot(gs[0, :])
@@ -108,12 +120,12 @@ for t in T:
 ax1.axhline(y=V_MIN, color='red', linestyle='--', linewidth=2, alpha=0.7, label=f'V_MIN ({V_MIN} hm³)')
 ax1.axhline(y=V_MAX, color='green', linestyle='--', linewidth=2, alpha=0.7, label=f'V_MAX ({V_MAX} hm³)')
 
-for t in range(1, 6):
+for t in range(1, 7):
     ax1.axvline(x=t*48, color='gray', linestyle=':', alpha=0.4, linewidth=1)
 
 ax1.set_xlabel('Semanas (Agrupadas por Temporada)', fontweight='bold', fontsize=11)
 ax1.set_ylabel('Volumen (hm³)', fontweight='bold', fontsize=11)
-ax1.set_title('📊 VOLUMEN DEL LAGO LAJA - 5 TEMPORADAS', 
+ax1.set_title('📊 VOLUMEN DEL LAGO LAJA - 6 TEMPORADAS', 
               fontweight='bold', fontsize=13, pad=12)
 ax1.legend(loc='best', framealpha=0.95, fontsize=9, ncol=7)
 ax1.grid(True, alpha=0.3)
@@ -312,7 +324,7 @@ print("\n📊 Generando gráfico 1: Volumen lago (todas temporadas agregadas)...
 fig, ax = plt.subplots(figsize=(20, 8))
 
 # Plotear cada temporada una al lado de la otra
-colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
 
 for t in T:
     data_t = volumenes[volumenes['Temporada'] == t]
@@ -332,19 +344,19 @@ ax.axhline(y=V_MAX, color='orange', linestyle='-.', linewidth=2, alpha=0.7,
            label=f'V_MAX = {V_MAX:.0f} hm³')
 
 # Líneas verticales para separar temporadas
-for t in range(1, 5):
+for t in range(1, 6):
     semana_fin = t * 48
     ax.axvline(x=semana_fin, color='gray', linestyle='--', alpha=0.4, linewidth=1.5)
 
 # Añadir etiquetas de temporadas en el eje x
-ax.set_xticks([24, 72, 120, 168, 216])
-ax.set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5'], fontsize=11, fontweight='bold')
+ax.set_xticks([24, 72, 120, 168, 216, 264])
+ax.set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5', 'T6'], fontsize=11, fontweight='bold')
 
 # Eje x secundario con semanas
 ax2 = ax.twiny()
 ax2.set_xlim(ax.get_xlim())
-ax2.set_xticks(np.arange(0, 241, 48))
-ax2.set_xticklabels([f'{i*48}' for i in range(6)], fontsize=9)
+ax2.set_xticks(np.arange(0, 289, 48))
+ax2.set_xticklabels([f'{i*48}' for i in range(7)], fontsize=9)
 ax2.set_xlabel('Semana Global', fontsize=10)
 
 ax.set_xlabel('Temporadas', fontsize=12, fontweight='bold')
@@ -389,12 +401,12 @@ if phi_zonas is not None and len(phi_zonas) > 0:
                   color=colors[t-1], label=f'Temporada {t}')
     
     # Líneas verticales para separar temporadas
-    for t in range(1, 5):
+    for t in range(1, 6):
         semana_fin = t * 48
         ax.axvline(x=semana_fin, color='gray', linestyle='--', alpha=0.4, linewidth=1.5)
     
-    ax.set_xticks([24, 72, 120, 168, 216])
-    ax.set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5'], fontsize=11, fontweight='bold')
+    ax.set_xticks([24, 72, 120, 168, 216, 264])
+    ax.set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5', 'T6'], fontsize=11, fontweight='bold')
     ax.set_xlabel('Temporadas', fontsize=12, fontweight='bold')
     ax.set_ylabel('Zona k', fontsize=12, fontweight='bold')
     ax.set_title('Zonas de Linealización Completas (φ=1) - Modelo LaTeX', 
@@ -459,8 +471,8 @@ for j in J:
             continue
         
         # Plotear cada temporada una al lado de la otra
-        colors_demanda = ['#e74c3c', '#e74c3c', '#e74c3c', '#e74c3c', '#e74c3c']  # Rojo
-        colors_provision = ['#27ae60', '#2ecc71', '#16a085', '#1abc9c', '#0e6655']  # Verdes
+        colors_demanda = ['#e74c3c', '#e74c3c', '#e74c3c', '#e74c3c', '#e74c3c', '#e74c3c']  # Rojo (6 temporadas)
+        colors_provision = ['#27ae60', '#2ecc71', '#16a085', '#1abc9c', '#0e6655', '#138d75']  # Verdes (6 temporadas)
         
         for t in T:
             data_t = data_d[data_d['Temporada'] == t]
@@ -506,7 +518,7 @@ for j in J:
                     label=label_p, alpha=0.8)
         
         # Líneas verticales para separar temporadas
-        for t in range(1, 5):
+        for t in range(1, 6):
             semana_fin = t * 48
             ax.axvline(x=semana_fin, color='gray', linestyle='--', alpha=0.4, linewidth=1.5)
         
@@ -539,8 +551,8 @@ for j in J:
         ax.grid(True, alpha=0.3)
     
     # Añadir etiquetas de temporadas en el eje x
-    axes[-1].set_xticks([24, 72, 120, 168, 216])
-    axes[-1].set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5'], fontsize=11, fontweight='bold')
+    axes[-1].set_xticks([24, 72, 120, 168, 216, 264])
+    axes[-1].set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5', 'T6'], fontsize=11, fontweight='bold')
     axes[-1].set_xlabel('Temporadas', fontsize=12, fontweight='bold')
     
     plt.suptitle(f'Demanda vs Provisión - Canal {canal_nombre} - Temporadas Agregadas', 
@@ -726,11 +738,11 @@ for idx_c, central in enumerate(centrales):
 fig, ax = plt.subplots(figsize=(16, 8))
 
 x = np.arange(len(centrales))  # Posiciones de las centrales
-width = 0.15  # Ancho de cada barra
-colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+width = 0.125  # Ancho de cada barra (reducido para 6 temporadas)
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
 
 for idx_t, temp in enumerate(temporadas):
-    offset = width * (idx_t - 2)  # Centrar las barras
+    offset = width * (idx_t - 2.5)  # Centrar las barras (6 temporadas)
     ax.bar(x + offset, data_matrix[:, idx_t], width, 
            label=f'Temporada {temp}', color=colors[idx_t], alpha=0.85)
 
@@ -757,10 +769,10 @@ if filtraciones is not None:
     print("\n📊 Generando gráfico de filtraciones...")
     
     # Gráfico 1: Filtraciones por temporada (5 subplots)
-    fig, axes = plt.subplots(5, 1, figsize=(18, 20), sharex=True)
+    fig, axes = plt.subplots(6, 1, figsize=(18, 24), sharex=True)
     fig.suptitle('Evolución de Filtraciones por Temporada', fontsize=18, fontweight='bold', y=0.995)
     
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
     
     for idx, t in enumerate(T):
         ax = axes[idx]
@@ -813,7 +825,7 @@ if filtraciones is not None:
                 marker='o', markersize=3, alpha=0.9)
     
     # Separadores verticales entre temporadas
-    for t in range(1, 5):
+    for t in range(1, 6):
         ax.axvline(x=t*48, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
     
     ax.set_xlabel('Semana (Agregada por Temporada)', fontsize=12, fontweight='bold')
@@ -833,6 +845,110 @@ else:
     print("\n⚠ No se generaron gráficos de filtraciones (archivo no encontrado)")
 
 # ============================================================
+# GRÁFICO 10: ANÁLISIS DE USO DE VOLÚMENES ASIGNADOS POR TEMPORADA
+# ============================================================
+
+print("\n📊 Generando GRÁFICO 10: Análisis de uso de volúmenes VR y VG...")
+
+fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+
+# Crear arrays para almacenar los datos agregados
+vr_inicial_list = []
+vr_usado_list = []
+vr_final_list = []
+vg_inicial_list = []
+vg_usado_list = []
+vg_final_list = []
+temporadas_list = []
+
+for t in T:
+    # Datos iniciales
+    vr_0 = volumenes_uso[volumenes_uso['Temporada'] == t]['VR_0_hm3'].values[0]
+    vg_0 = volumenes_uso[volumenes_uso['Temporada'] == t]['VG_0_hm3'].values[0]
+    
+    # Volúmenes finales (última semana)
+    vr_final = vr_vg[(vr_vg['Temporada'] == t) & (vr_vg['Semana'] == 48)]['VR_hm3'].values[0]
+    vg_final = vr_vg[(vr_vg['Temporada'] == t) & (vr_vg['Semana'] == 48)]['VG_hm3'].values[0]
+    
+    # Extracción total de la temporada (suma de qer y qeg en hm³)
+    extracciones_t = extracciones_uso[extracciones_uso['Temporada'] == t]
+    from cargar_datos_5temporadas import cargar_parametros_excel
+    parametros = cargar_parametros_excel()
+    FS = parametros['FS']
+    
+    vr_usado = sum(extracciones_t['qer_m3s'].values[w-1] * FS[w] / 1_000_000 for w in range(1, 49))
+    vg_usado = sum(extracciones_t['qeg_m3s'].values[w-1] * FS[w] / 1_000_000 for w in range(1, 49))
+    
+    vr_inicial_list.append(vr_0)
+    vr_usado_list.append(vr_usado)
+    vr_final_list.append(vr_final)
+    
+    vg_inicial_list.append(vg_0)
+    vg_usado_list.append(vg_usado)
+    vg_final_list.append(vg_final)
+    
+    temporadas_list.append(f'T{t}')
+
+# --- PANEL 1: RIEGO (VR) ---
+ax = axes[0]
+x_pos = np.arange(len(T))
+width = 0.6
+
+# Barras apiladas
+bars_vr_inicial = ax.bar(x_pos, vr_inicial_list, width, label='VR Inicial', color='#3498db', alpha=0.9)
+bars_vr_usado = ax.bar(x_pos, vr_usado_list, width, label='VR Usado', color='#e74c3c', alpha=0.9)
+bars_vr_final = ax.bar(x_pos, vr_final_list, width, bottom=[vr_inicial_list[i] + vr_usado_list[i] for i in range(len(T))],
+                       label='VR Final (Sobrante)', color='#2ecc71', alpha=0.9)
+
+# Etiquetas en las barras
+for i, (inicial, usado, final) in enumerate(zip(vr_inicial_list, vr_usado_list, vr_final_list)):
+    porcentaje_usado = (usado / inicial * 100) if inicial > 0 else 0
+    ax.text(i, inicial/2, f'{inicial:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+    ax.text(i, inicial + usado/2, f'{usado:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+    if final > 0.1:
+        ax.text(i, inicial + usado + final/2, f'{final:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+
+ax.set_xlabel('Temporada', fontsize=12, fontweight='bold')
+ax.set_ylabel('Volumen (hm³)', fontsize=12, fontweight='bold')
+ax.set_title('RIEGO: Inicial vs Usado vs Final', fontsize=14, fontweight='bold')
+ax.set_xticks(x_pos)
+ax.set_xticklabels(temporadas_list)
+ax.legend(loc='upper left', fontsize=10)
+ax.grid(True, alpha=0.3, axis='y')
+
+# --- PANEL 2: GENERACIÓN (VG) ---
+ax = axes[1]
+
+# Barras apiladas
+bars_vg_inicial = ax.bar(x_pos, vg_inicial_list, width, label='VG Inicial', color='#3498db', alpha=0.9)
+bars_vg_usado = ax.bar(x_pos, vg_usado_list, width, label='VG Usado', color='#e74c3c', alpha=0.9)
+bars_vg_final = ax.bar(x_pos, vg_final_list, width, bottom=[vg_inicial_list[i] + vg_usado_list[i] for i in range(len(T))],
+                       label='VG Final (Sobrante)', color='#2ecc71', alpha=0.9)
+
+# Etiquetas en las barras
+for i, (inicial, usado, final) in enumerate(zip(vg_inicial_list, vg_usado_list, vg_final_list)):
+    porcentaje_usado = (usado / inicial * 100) if inicial > 0 else 0
+    ax.text(i, inicial/2, f'{inicial:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+    ax.text(i, inicial + usado/2, f'{usado:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+    if final > 0.1:
+        ax.text(i, inicial + usado + final/2, f'{final:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+
+ax.set_xlabel('Temporada', fontsize=12, fontweight='bold')
+ax.set_ylabel('Volumen (hm³)', fontsize=12, fontweight='bold')
+ax.set_title('GENERACIÓN: Inicial vs Usado vs Final', fontsize=14, fontweight='bold')
+ax.set_xticks(x_pos)
+ax.set_xticklabels(temporadas_list)
+ax.legend(loc='upper left', fontsize=10)
+ax.grid(True, alpha=0.3, axis='y')
+
+plt.suptitle('Análisis de Uso de Volúmenes Asignados por Temporada', fontsize=16, fontweight='bold', y=0.98)
+plt.tight_layout(rect=[0, 0, 1, 0.96])
+filename = '10_analisis_uso_volumenes.png'
+plt.savefig(f'{output_dir}/{filename}', dpi=300, bbox_inches='tight', facecolor='white')
+print(f"  ✓ Guardado: {output_dir}/{filename}")
+plt.close()
+
+# ============================================================
 # RESUMEN
 # ============================================================
 
@@ -841,13 +957,17 @@ print("✅ VISUALIZACIÓN COMPLETADA")
 print("="*70)
 print(f"\nGráficos generados en carpeta: {output_dir}/")
 print("\nGráficos generados:")
+print("  0. Dashboard resumen")
 print("  1. Volumen lago - Todas las temporadas juntas")
-print("  2. Volumen lago - Por temporada (5 gráficos)")
+print("  2. Volumen lago - Por temporada (6 gráficos)")
 print("  3. Volúmenes por uso - Todas las temporadas juntas")
-print("  4. Volúmenes por uso - Por temporada (2 usos × 5 temporadas)")
+print("  4. Volúmenes por uso - Por temporada (2 usos × 6 temporadas)")
 print("  5. Demanda vs Provisión - Por canal, todas las temporadas")
 print("  6. Demanda vs Provisión - Por canal, demandante y temporada")
 print("  7. Generación por central y temporada (barras agrupadas)")
+print("  8. Zonas de linealización activadas (phi)")
+print("  9. Filtraciones comparadas")
+print("  10. Análisis de uso de volúmenes VR y VG")
 if filtraciones is not None:
     print("  8. Filtraciones por temporada (5 gráficos)")
     print("  9. Filtraciones - Todas las temporadas comparadas")
