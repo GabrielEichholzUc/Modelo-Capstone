@@ -196,13 +196,11 @@ class ModeloLajaLatex:
             k = idx + 1  # Zona 1-indexada
             self.f_k[k] = FC_dict[k_original]
             self.v_k[k] = VC_dict[k_original]
-            # vr_k corresponde a índices impares: 1,3,5,7,...
-            # vg_k corresponde a índices pares: 2,4,6,8,...
-            # Para k=1 buscar VUC[(1,1)], k=2 buscar VUC[(1,3)], k=3 buscar VUC[(1,5)]...
-            vr_index = 2*k - 1  # 1→1, 2→3, 3→5, 4→7...
-            vg_index = 2*k      # 1→2, 2→4, 3→6, 4→8...
-            self.vr_k[k] = VUC_dict.get((1, vr_index), 0)  # Riego (u=1, índices impares)
-            self.vg_k[k] = VUC_dict.get((2, vg_index), 0)  # Generación (u=2, índices pares)
+            # Los datos de VUC vienen con el mismo índice k para cada zona
+            # VUC[(1, k)] = vr_k (volumen de riego para zona k)
+            # VUC[(2, k)] = vg_k (volumen de generación para zona k)
+            self.vr_k[k] = VUC_dict.get((1, k_original), 0)  # Riego (u=1)
+            self.vg_k[k] = VUC_dict.get((2, k_original), 0)  # Generación (u=2)
         
         self.QA = dict_parametros.get('QA', {})
         self.QD = dict_parametros.get('QD', {})
@@ -287,6 +285,8 @@ class ModeloLajaLatex:
                 for k in K_zonas:
                     f_k = self.f_k[k]
                     f_k_next = self.f_k[k + 1]
+                    v_k = self.v_k[k]
+                    v_k_next = self.v_k[k + 1]
                     
                     # Δf[k,w,t] ≤ f_{k+1} - f_k
                     self.model.addConstr(
@@ -303,10 +303,8 @@ class ModeloLajaLatex:
                         self.model.addConstr(
                             self.delta_f[k, w, t] <= self.phi_var[k-1, w, t] * (f_k_next - f_k),
                             name=f"delta_f_prev_{k}_{w}_{t}")
-                    else:
-                        # Para k=1, φ[0] = 1 implícito
-                        pass
                 
+                # Relacionar V[w,t] con las zonas phi usando linealización
                 # V[w,t] = v_1 + Σ ((v_{k+1} - v_k)/(f_{k+1} - f_k)) * Δf[k,w,t]
                 v_expr = self.v_k[1]
                 for k in K_zonas:
@@ -319,7 +317,8 @@ class ModeloLajaLatex:
                         coef = (v_k_next - v_k) / (f_k_next - f_k)
                         v_expr += coef * self.delta_f[k, w, t]
                 
-                # V[w,t] definido por filtración para TODAS las semanas
+                # CLAVE: Esta es una restricción de IGUALDAD que relaciona V y qf
+                # a través de la curva de filtraciones
                 self.model.addConstr(
                     self.V[w, t] == v_expr,
                     name=f"vol_from_f_{w}_{t}")
@@ -340,63 +339,76 @@ class ModeloLajaLatex:
                     self.V_30Nov[t] == self.V[32, t-1],
                     name=f"def_V30Nov_{t}")
         
-        # Linealización CONJUNTA de V_30Nov[t], VR_0[t] y VG_0[t]
-        # Todas usan las MISMAS variables Δv30[k,t] y φ_30[k,t]
+        # Linealización de VR_0[t] y VG_0[t] basado en V_30Nov[t]
+        # Usamos interpolación lineal por zonas entre los puntos (v_k, vr_k, vg_k)
+        print("  2b. Linealización de VR_0 y VG_0 a partir de V_30Nov...")
+        
         for t in self.T:
-            # V_30Nov[t] = v_1 + Σ (v_{k+1} - v_k) × Δv30[k,t]
+            # V_30Nov[t] = v_1 + Σ_{k=1}^{K-1} Δv30[k,t]
+            # Esta ecuación relaciona V_30Nov con las zonas activadas
             v_expr = self.v_k[1]
             for k in K_zonas:
                 v_k = self.v_k[k]
                 v_k_next = self.v_k[k + 1]
-                v_expr += (v_k_next - v_k) * self.delta_v30[k, t]
+                v_expr += self.delta_v30[k, t]
             
             self.model.addConstr(
                 self.V_30Nov[t] == v_expr,
-                name=f"V30Nov_from_v_{t}")
+                name=f"V30Nov_linearization_{t}")
             
-            # VR_0[t] = vr_1 + Σ (vr_{k+1} - vr_k) × Δv30[k,t]
+            # VR_0[t] = vr_1 + Σ_{k=1}^{K-1} (vr_{k+1} - vr_k) × Δv30[k,t]
+            # Usamos las MISMAS variables Δv30 para mantener consistencia
             vr_expr = self.vr_k[1]
             for k in K_zonas:
                 vr_k = self.vr_k[k]
                 vr_k_next = self.vr_k[k + 1]
-                vr_expr += (vr_k_next - vr_k) * self.delta_v30[k, t]
+                v_k = self.v_k[k]
+                v_k_next = self.v_k[k + 1]
+                vr_expr += (vr_k_next - vr_k) / (v_k_next - v_k) * self.delta_v30[k, t]
             
             self.model.addConstr(
                 self.VR_0[t] == vr_expr,
-                name=f"VR0_from_v_{t}")
+                name=f"VR0_linearization_{t}")
             
-            # VG_0[t] = vg_1 + Σ (vg_{k+1} - vg_k) × Δv30[k,t]
+            # VG_0[t] = vg_1 + Σ_{k=1}^{K-1} (vg_{k+1} - vg_k) × Δv30[k,t]
+            # Usamos las MISMAS variables Δv30 para mantener consistencia
             vg_expr = self.vg_k[1]
             for k in K_zonas:
                 vg_k = self.vg_k[k]
                 vg_k_next = self.vg_k[k + 1]
-                vg_expr += (vg_k_next - vg_k) * self.delta_v30[k, t]
+                v_k = self.v_k[k]
+                v_k_next = self.v_k[k + 1]
+                vg_expr += (vg_k_next - vg_k) / (v_k_next - v_k) * self.delta_v30[k, t]
             
             self.model.addConstr(
                 self.VG_0[t] == vg_expr,
-                name=f"VG0_from_v_{t}")
+                name=f"VG0_linearization_{t}")
             
-            # Restricciones de linealización para Δv30[k,t]
+            # Restricciones de linealización por zonas para Δv30[k,t]
+            # Estas aseguran que la interpolación sea correcta
             for k in K_zonas:
                 v_k = self.v_k[k]
                 v_k_next = self.v_k[k + 1]
                 
-                # Δv30[k,t] ≤ v_{k+1} - v_k
+                # 1. Δv30[k,t] ≤ v_{k+1} - v_k
+                #    El incremento no puede exceder el ancho de la zona
                 self.model.addConstr(
                     self.delta_v30[k, t] <= v_k_next - v_k,
                     name=f"delta_v30_upper_{k}_{t}")
                 
-                # Δv30[k,t] ≥ φ_30[k,t] * (v_{k+1} - v_k)
+                # 2. Δv30[k,t] ≥ φ_30[k,t] × (v_{k+1} - v_k)
+                #    Si zona k está completa (φ_30[k,t]=1), el incremento es máximo
                 self.model.addConstr(
                     self.delta_v30[k, t] >= self.phi_30[k, t] * (v_k_next - v_k),
                     name=f"delta_v30_lower_{k}_{t}")
                 
-                # Δv30[k,t] ≤ φ_30[k-1,t] * (v_{k+1} - v_k)
+                # 3. Δv30[k,t] ≤ φ_30[k-1,t] × (v_{k+1} - v_k)
+                #    Solo se puede tener incremento en zona k si zona k-1 está completa
                 if k > 1:
                     self.model.addConstr(
                         self.delta_v30[k, t] <= self.phi_30[k-1, t] * (v_k_next - v_k),
-                        name=f"delta_v30_prev_{k}_{t}")
-                # Para k=1, φ_30[0,t] = 1 implícito (siempre se incluye zona base)
+                        name=f"delta_v30_ordering_{k}_{t}")
+                # Para k=1, no hay restricción previa (zona base siempre activa)
         
         # ========== 3. GENERACIÓN EN EL TORO ==========
         print("  3. Generación en El Toro...")
@@ -406,6 +418,7 @@ class ModeloLajaLatex:
                 self.model.addConstr(
                     self.qg[1, w, t] == self.qer[w, t] + self.qeg[w, t],
                     name=f"gen_eltoro_{w}_{t}")
+                
         
         # ========== 3b. BALANCE DE VOLÚMENES POR USO (VR Y VG) ==========
         print("  3b. Balance de volúmenes por uso (VR y VG)...")
@@ -454,17 +467,17 @@ class ModeloLajaLatex:
                 if w == 1 and t == 1:
                     # V[1,1] = V_0 + (QA[1,1,1] - qg[1,1,1] - qf[1,1]) * FS[1] / 10^6
                     self.model.addConstr(
-                        self.V[w, t] == self.V_0 + (self.QA[1, w, t] - self.qg[1, w, t] - self.qf[w, t]) * self.FS[w] / 1000000,
+                        self.V[w, t] <= self.V_0 + (self.QA[1, w, t] - self.qg[1, w, t] - self.qf[w, t]) * self.FS[w] / 1000000,
                         name=f"balance_vol_11")
                 elif w == 1 and t > 1:
                     # V[1,t] = V[48,t-1] + (QA[1,1,t] - qg[1,1,t] - qf[1,t]) * FS[1] / 10^6
                     self.model.addConstr(
-                        self.V[w, t] == self.V[48, t-1] + (self.QA[1, w, t] - self.qg[1, w, t] - self.qf[w, t]) * self.FS[w] / 1000000,
+                        self.V[w, t] <= self.V[48, t-1] + (self.QA[1, w, t] - self.qg[1, w, t] - self.qf[w, t]) * self.FS[w] / 1000000,
                         name=f"balance_vol_1{t}")
                 else:
                     # V[w,t] = V[w-1,t] + (QA[1,w,t] - qg[1,w,t] - qf[w,t]) * FS[w] / 10^6
                     self.model.addConstr(
-                        self.V[w, t] == self.V[w-1, t] + (self.QA[1, w, t] - self.qg[1, w, t] - self.qf[w, t]) * self.FS[w] / 1000000,
+                        self.V[w, t] <= self.V[w-1, t] + (self.QA[1, w, t] - self.qg[1, w, t] - self.qf[w, t]) * self.FS[w] / 1000000,
                         name=f"balance_vol_{w}_{t}")
         
         # ========== 5. VOLÚMENES MÍNIMOS Y MÁXIMOS DEL LAGO ==========

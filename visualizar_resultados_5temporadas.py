@@ -70,15 +70,17 @@ try:
     parametros = cargar_parametros_excel()
     V_MIN = parametros.get('V_MIN', 1400)
     V_MAX = parametros.get('V_MAX', 5582)
-    print(f"✓ Parámetros cargados: V_MIN={V_MIN} hm³, V_MAX={V_MAX} hm³")
+    # Cargar afluentes QA para restar a la demanda
+    QA = parametros.get('QA', {})
+    print(f"✓ Parámetros cargados: V_MIN={V_MIN} hm³, V_MAX={V_MAX} hm³, Afluentes QA cargados")
 except:
     V_MIN = 1400
     V_MAX = 5582
+    QA = {}
     print(f"⚠ No se pudieron cargar parámetros, usando valores por defecto: V_MIN={V_MIN} hm³, V_MAX={V_MAX} hm³")
 
 # Compatibilidad con código antiguo
 V_min = V_MIN
-volumenes_uso = None  # Ya no se usa en modelo LaTeX
 
 # Parámetros del modelo
 T = list(range(1, 7))  # 6 temporadas
@@ -892,25 +894,34 @@ for t in T:
 # --- PANEL 1: RIEGO (VR) ---
 ax = axes[0]
 x_pos = np.arange(len(T))
-width = 0.6
+width = 0.35
 
-# Barras apiladas
-bars_vr_inicial = ax.bar(x_pos, vr_inicial_list, width, label='VR Inicial', color='#3498db', alpha=0.9)
-bars_vr_usado = ax.bar(x_pos, vr_usado_list, width, label='VR Usado', color='#e74c3c', alpha=0.9)
-bars_vr_final = ax.bar(x_pos, vr_final_list, width, bottom=[vr_inicial_list[i] + vr_usado_list[i] for i in range(len(T))],
-                       label='VR Final (Sobrante)', color='#2ecc71', alpha=0.9)
-
-# Etiquetas en las barras
-for i, (inicial, usado, final) in enumerate(zip(vr_inicial_list, vr_usado_list, vr_final_list)):
-    porcentaje_usado = (usado / inicial * 100) if inicial > 0 else 0
-    ax.text(i, inicial/2, f'{inicial:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
-    ax.text(i, inicial + usado/2, f'{usado:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
-    if final > 0.1:
-        ax.text(i, inicial + usado + final/2, f'{final:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+# Para cada temporada: barra azul (inicial) y barra apilada (usado + final)
+for i in range(len(T)):
+    # Barra azul: VR Inicial
+    ax.bar(x_pos[i] - width/2, vr_inicial_list[i], width, 
+           label='VR Inicial' if i == 0 else '', color='#3498db', alpha=0.9)
+    
+    # Barras apiladas: Usado (rojo) + Final (verde)
+    ax.bar(x_pos[i] + width/2, vr_usado_list[i], width, 
+           label='VR Usado' if i == 0 else '', color='#e74c3c', alpha=0.9)
+    ax.bar(x_pos[i] + width/2, vr_final_list[i], width, bottom=vr_usado_list[i],
+           label='VR Final' if i == 0 else '', color='#2ecc71', alpha=0.9)
+    
+    # Etiquetas
+    ax.text(x_pos[i] - width/2, vr_inicial_list[i]/2, f'{vr_inicial_list[i]:.0f}', 
+            ha='center', va='center', fontsize=9, fontweight='bold', color='white')
+    
+    if vr_usado_list[i] > 10:
+        ax.text(x_pos[i] + width/2, vr_usado_list[i]/2, f'{vr_usado_list[i]:.0f}', 
+                ha='center', va='center', fontsize=9, fontweight='bold', color='white')
+    if vr_final_list[i] > 10:
+        ax.text(x_pos[i] + width/2, vr_usado_list[i] + vr_final_list[i]/2, f'{vr_final_list[i]:.0f}', 
+                ha='center', va='center', fontsize=9, fontweight='bold', color='white')
 
 ax.set_xlabel('Temporada', fontsize=12, fontweight='bold')
 ax.set_ylabel('Volumen (hm³)', fontsize=12, fontweight='bold')
-ax.set_title('RIEGO: Inicial vs Usado vs Final', fontsize=14, fontweight='bold')
+ax.set_title('RIEGO: Inicial (Azul) vs Usado+Final (Rojo+Verde)', fontsize=14, fontweight='bold')
 ax.set_xticks(x_pos)
 ax.set_xticklabels(temporadas_list)
 ax.legend(loc='upper left', fontsize=10)
@@ -919,23 +930,32 @@ ax.grid(True, alpha=0.3, axis='y')
 # --- PANEL 2: GENERACIÓN (VG) ---
 ax = axes[1]
 
-# Barras apiladas
-bars_vg_inicial = ax.bar(x_pos, vg_inicial_list, width, label='VG Inicial', color='#3498db', alpha=0.9)
-bars_vg_usado = ax.bar(x_pos, vg_usado_list, width, label='VG Usado', color='#e74c3c', alpha=0.9)
-bars_vg_final = ax.bar(x_pos, vg_final_list, width, bottom=[vg_inicial_list[i] + vg_usado_list[i] for i in range(len(T))],
-                       label='VG Final (Sobrante)', color='#2ecc71', alpha=0.9)
-
-# Etiquetas en las barras
-for i, (inicial, usado, final) in enumerate(zip(vg_inicial_list, vg_usado_list, vg_final_list)):
-    porcentaje_usado = (usado / inicial * 100) if inicial > 0 else 0
-    ax.text(i, inicial/2, f'{inicial:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
-    ax.text(i, inicial + usado/2, f'{usado:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
-    if final > 0.1:
-        ax.text(i, inicial + usado + final/2, f'{final:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+# Para cada temporada: barra azul (inicial) y barra apilada (usado + final)
+for i in range(len(T)):
+    # Barra azul: VG Inicial
+    ax.bar(x_pos[i] - width/2, vg_inicial_list[i], width, 
+           label='VG Inicial' if i == 0 else '', color='#3498db', alpha=0.9)
+    
+    # Barras apiladas: Usado (rojo) + Final (verde)
+    ax.bar(x_pos[i] + width/2, vg_usado_list[i], width, 
+           label='VG Usado' if i == 0 else '', color='#e74c3c', alpha=0.9)
+    ax.bar(x_pos[i] + width/2, vg_final_list[i], width, bottom=vg_usado_list[i],
+           label='VG Final' if i == 0 else '', color='#2ecc71', alpha=0.9)
+    
+    # Etiquetas
+    ax.text(x_pos[i] - width/2, vg_inicial_list[i]/2, f'{vg_inicial_list[i]:.0f}', 
+            ha='center', va='center', fontsize=9, fontweight='bold', color='white')
+    
+    if vg_usado_list[i] > 10:
+        ax.text(x_pos[i] + width/2, vg_usado_list[i]/2, f'{vg_usado_list[i]:.0f}', 
+                ha='center', va='center', fontsize=9, fontweight='bold', color='white')
+    if vg_final_list[i] > 10:
+        ax.text(x_pos[i] + width/2, vg_usado_list[i] + vg_final_list[i]/2, f'{vg_final_list[i]:.0f}', 
+                ha='center', va='center', fontsize=9, fontweight='bold', color='white')
 
 ax.set_xlabel('Temporada', fontsize=12, fontweight='bold')
 ax.set_ylabel('Volumen (hm³)', fontsize=12, fontweight='bold')
-ax.set_title('GENERACIÓN: Inicial vs Usado vs Final', fontsize=14, fontweight='bold')
+ax.set_title('GENERACIÓN: Inicial (Azul) vs Usado+Final (Rojo+Verde)', fontsize=14, fontweight='bold')
 ax.set_xticks(x_pos)
 ax.set_xticklabels(temporadas_list)
 ax.legend(loc='upper left', fontsize=10)
@@ -951,6 +971,65 @@ plt.close()
 # ============================================================
 # RESUMEN
 # ============================================================
+
+# ============================================================
+# GRÁFICO 11: EVOLUCIÓN DE VG Y VR A LO LARGO DE LAS TEMPORADAS
+# ============================================================
+
+print("\n📊 Generando GRÁFICO 11: Evolución de VG y VR...")
+
+fig, axes = plt.subplots(2, 1, figsize=(20, 12), sharex=True)
+
+# --- PANEL 1: EVOLUCIÓN DE VR ---
+ax1 = axes[0]
+for t in T:
+    data_t = vr_vg[vr_vg['Temporada'] == t].sort_values('Semana')
+    x_offset = (t - 1) * 48
+    semanas = data_t['Semana'].values + x_offset
+    ax1.plot(semanas, data_t['VR_hm3'], color=colors_temp[t-1], 
+             linewidth=2.5, label=f'VR Temporada {t}', alpha=0.9, marker='o', markersize=3)
+
+# Separadores de temporadas
+for t in range(1, 7):
+    ax1.axvline(x=t*48, color='gray', linestyle=':', alpha=0.4, linewidth=1.5)
+
+ax1.set_ylabel('Volumen VR (hm³)', fontweight='bold', fontsize=12)
+ax1.set_title('📊 EVOLUCIÓN DEL VOLUMEN DE RIEGO (VR) - 6 TEMPORADAS', 
+              fontweight='bold', fontsize=14, pad=12)
+ax1.legend(loc='best', framealpha=0.95, fontsize=10, ncol=6)
+ax1.grid(True, alpha=0.3)
+ax1.set_ylim(bottom=0)
+
+# --- PANEL 2: EVOLUCIÓN DE VG ---
+ax2 = axes[1]
+for t in T:
+    data_t = vr_vg[vr_vg['Temporada'] == t].sort_values('Semana')
+    x_offset = (t - 1) * 48
+    semanas = data_t['Semana'].values + x_offset
+    ax2.plot(semanas, data_t['VG_hm3'], color=colors_temp[t-1], 
+             linewidth=2.5, label=f'VG Temporada {t}', alpha=0.9, marker='o', markersize=3)
+
+# Separadores de temporadas
+for t in range(1, 7):
+    ax2.axvline(x=t*48, color='gray', linestyle=':', alpha=0.4, linewidth=1.5)
+
+ax2.set_xlabel('Semanas (Agrupadas por Temporada)', fontweight='bold', fontsize=12)
+ax2.set_ylabel('Volumen VG (hm³)', fontweight='bold', fontsize=12)
+ax2.set_title('📊 EVOLUCIÓN DEL VOLUMEN DE GENERACIÓN (VG) - 6 TEMPORADAS', 
+              fontweight='bold', fontsize=14, pad=12)
+ax2.legend(loc='best', framealpha=0.95, fontsize=10, ncol=6)
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim(bottom=0)
+
+# Etiquetas de temporadas en eje x
+ax2.set_xticks([24, 72, 120, 168, 216, 264])
+ax2.set_xticklabels(['T1', 'T2', 'T3', 'T4', 'T5', 'T6'], fontsize=11, fontweight='bold')
+
+plt.tight_layout()
+filename = '11_evolucion_vr_vg.png'
+plt.savefig(f'{output_dir}/{filename}', dpi=300, bbox_inches='tight', facecolor='white')
+print(f"  ✓ Guardado: {output_dir}/{filename}")
+plt.close()
 
 print("\n" + "="*70)
 print("✅ VISUALIZACIÓN COMPLETADA")
@@ -968,6 +1047,7 @@ print("  7. Generación por central y temporada (barras agrupadas)")
 print("  8. Zonas de linealización activadas (phi)")
 print("  9. Filtraciones comparadas")
 print("  10. Análisis de uso de volúmenes VR y VG")
+print("  11. Evolución de VR y VG a lo largo de las temporadas")
 if filtraciones is not None:
     print("  8. Filtraciones por temporada (5 gráficos)")
     print("  9. Filtraciones - Todas las temporadas comparadas")
