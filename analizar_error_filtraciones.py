@@ -35,7 +35,7 @@ def cot_eltoro(volumen):
     Entrada: Volumen [hm³]
     Salida: Cota [m.s.n.m]
     """
-    # Tabla empírica Volumen -> Cota (índice i corresponde a cota 1300 + i - 2)
+    # Tabla empírica Volumen -> Cota (índice i corresponde a cota 1301 + i - 2)
     datos = np.array([
         0., 48.28954, 97.47766, 147.26746, 197.35679, 248.04517,
         299.43508, 351.82341, 405.0131, 459.20122, 514.48761, 570.97736,
@@ -53,9 +53,9 @@ def cot_eltoro(volumen):
     
     # Interpolación lineal
     if volumen <= 0:
-        cota = 1300.0
+        cota = 1301.0
     elif volumen >= datos[-1]:
-        cota = 1370.0
+        cota = 1371.0
     else:
         # Encontrar índice donde insertar
         i = np.searchsorted(datos, volumen)
@@ -65,10 +65,10 @@ def cot_eltoro(volumen):
         d2 = datos[i] - datos[i-1]
         dc = d1 / d2
         
-        cota = 1300.0 + i - 2 + dc
+        cota = 1301.0 + i - 2 + dc
     
     # Limitar rango
-    cota = np.clip(cota, 1300.0, 1370.0)
+    cota = np.clip(cota, 1301.0, 1371.0)
     
     return cota
 

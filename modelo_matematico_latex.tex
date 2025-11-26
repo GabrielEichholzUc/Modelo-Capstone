@@ -1,0 +1,332 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\geometry{margin=2.5cm}
+
+\title{\textbf{Modelo Matemático de Optimización\\Sistema Hídrico Lago Laja}}
+\author{Modelo de Convenio de Riego y Generación}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Conjuntos}
+
+\begin{itemize}[leftmargin=*]
+    \item $\mathcal{T} = \{1, 2, 3, 4, 5, 6\}$: Temporadas
+    \item $\mathcal{W} = \{1, 2, \ldots, 48\}$: Semanas hidrológicas por temporada
+    \item $\mathcal{D} = \{1, 2, 3\}$: Demandantes de riego
+    \begin{itemize}
+        \item $d=1$: Primeros Regantes
+        \item $d=2$: Segundos Regantes
+        \item $d=3$: Saltos del Laja
+    \end{itemize}
+    \item $\mathcal{I} = \{1, 2, \ldots, 16\}$: Centrales hidroeléctricas
+    \item $\mathcal{J} = \{1, 2, 3, 4\}$: Canales de retiro para riego
+    \begin{itemize}
+        \item $j=1$: RieZaCo
+        \item $j=2$: RieTucapel
+        \item $j=3$: RieSaltos
+        \item $j=4$: Abanico (medición)
+    \end{itemize}
+    \item $\mathcal{A} = \{1, 2, 3, 4, 5, 6\}$: Afluentes
+    \begin{itemize}
+        \item $a=1$: El Toro, $a=2$: Abanico, $a=3$: Antuco
+        \item $a=4$: Tucapel, $a=5$: Canecol, $a=6$: Laja I
+    \end{itemize}
+    \item $\mathcal{K} = \{1, 2, \ldots, 14\}$: Zonas de linealización
+\end{itemize}
+
+\section{Parámetros}
+
+\subsection{Volúmenes del Lago}
+\begin{itemize}[leftmargin=*]
+    \item $V_0$: Volumen inicial del lago [hm³]
+    \item $V_{\text{MIN}}$: Volumen mínimo del lago [hm³]
+    \item $V_{\text{MAX}}$: Volumen máximo del lago [hm³]
+    \item $V_F$: Volumen final esperado [hm³]
+    \item $V_{30\text{Nov},1}$: Volumen al 30 de noviembre previo a temporada 1 [hm³]
+\end{itemize}
+
+\subsection{Curvas de Linealización}
+\begin{itemize}[leftmargin=*]
+    \item $v_k$: Volumen del lago en zona $k$ [hm³], $k \in \mathcal{K}$
+    \item $f_k$: Filtración en zona $k$ [m³/s], $k \in \mathcal{K}$
+    \item $vr_k$: Volumen disponible para riego en zona $k$ [hm³], $k \in \mathcal{K}$
+    \item $vg_k$: Volumen disponible para generación en zona $k$ [hm³], $k \in \mathcal{K}$
+\end{itemize}
+
+\subsection{Hidrología y Demandas}
+\begin{itemize}[leftmargin=*]
+    \item $QA_{a,w,t}$: Caudal afluente $a$ en semana $w$ de temporada $t$ [m³/s]
+    \item $QD_{d,j,w}$: Demanda de riego de demandante $d$ en canal $j$ en semana $w$ [m³/s]
+    \item $FS_w$: Factor de segundos en semana $w$ [s]
+\end{itemize}
+
+\subsection{Centrales Hidroeléctricas}
+\begin{itemize}[leftmargin=*]
+    \item $\gamma_i$: Caudal máximo de central $i$ [m³/s]
+    \item $\rho_i$: Rendimiento de central $i$ [MW/(m³/s)]
+\end{itemize}
+
+\subsection{Penalizaciones}
+\begin{itemize}[leftmargin=*]
+    \item $\psi$: Penalización por incumplimiento de convenio [GWh]
+    \item $\nu$: Penalización por violar umbrales $V_{\text{MIN}}$ o $V_{\text{MAX}}$ [GWh]
+    \item $M$: Parámetro Big-M
+\end{itemize}
+
+\section{Variables de Decisión}
+
+\subsection{Variables Continuas}
+
+\subsubsection{Volúmenes}
+\begin{itemize}[leftmargin=*]
+    \item $V_{w,t}$: Volumen del lago al final de semana $w$ en temporada $t$ [hm³]
+    \item $V_{30\text{Nov},t}$: Volumen del lago al 30 de noviembre (inicio) de temporada $t$ [hm³]
+    \item $VR_{w,t}$: Volumen disponible para riego en semana $w$ de temporada $t$ [hm³]
+    \item $VG_{w,t}$: Volumen disponible para generación en semana $w$ de temporada $t$ [hm³]
+    \item $VR_{0,t}$: Volumen inicial de riego en temporada $t$ [hm³]
+    \item $VG_{0,t}$: Volumen inicial de generación en temporada $t$ [hm³]
+\end{itemize}
+
+\subsubsection{Caudales}
+\begin{itemize}[leftmargin=*]
+    \item $qer_{w,t}$: Caudal extraído del lago para riego en semana $w$ de temporada $t$ [m³/s]
+    \item $qeg_{w,t}$: Caudal extraído del lago para generación en semana $w$ de temporada $t$ [m³/s]
+    \item $qf_{w,t}$: Caudal de filtración en semana $w$ de temporada $t$ [m³/s]
+    \item $qg_{i,w,t}$: Caudal de generación en central $i$, semana $w$, temporada $t$ [m³/s]
+    \item $qv_{i,w,t}$: Caudal de vertimiento en central $i$, semana $w$, temporada $t$ [m³/s]
+    \item $qp_{d,j,w,t}$: Caudal provisto a demandante $d$ en canal $j$, semana $w$, temporada $t$ [m³/s]
+\end{itemize}
+
+\subsubsection{Déficit y Superávit}
+\begin{itemize}[leftmargin=*]
+    \item $\text{def}_{d,j,w,t}$: Déficit de riego de demandante $d$ en canal $j$, semana $w$, temporada $t$ [m³/s]
+    \item $\text{sup}_{d,j,w,t}$: Superávit de riego de demandante $d$ en canal $j$, semana $w$, temporada $t$ [m³/s]
+\end{itemize}
+
+\subsubsection{Variables de Linealización}
+\begin{itemize}[leftmargin=*]
+    \item $\Delta f_{k,w,t}$: Filtración incremental en zona $k$, semana $w$, temporada $t$ [m³/s]
+    \item $\Delta v_{30,k,t}$: Incremento de volumen en zona $k$ al 30 Nov, temporada $t$ [hm³]
+\end{itemize}
+
+\subsubsection{Energía}
+\begin{itemize}[leftmargin=*]
+    \item $GEN_{i,t}$: Energía generada por central $i$ en temporada $t$ [GWh]
+\end{itemize}
+
+\subsection{Variables Binarias}
+\begin{itemize}[leftmargin=*]
+    \item $\phi_{k,w,t} \in \{0,1\}$: Indica si zona $k$ está completamente llena en semana $w$ de temporada $t$
+    \item $\phi_{30,k,t} \in \{0,1\}$: Indica si zona $k$ está completamente llena al 30 Nov de temporada $t$
+    \item $\eta_{d,j,w,t} \in \{0,1\}$: Indica incumplimiento de convenio de demandante $d$ en canal $j$, semana $w$, temporada $t$
+    \item $\alpha_{w,t} \in \{0,1\}$: Decisión de canal: $\alpha=1$ (Abanico), $\alpha=0$ (Tucapel)
+    \item $\beta_{w,t} \in \{0,1\}$: Indica violación de $V_{\text{MIN}}$ en semana $w$ de temporada $t$
+    \item $\delta_{w,t} \in \{0,1\}$: Indica violación de $V_{\text{MAX}}$ en semana $w$ de temporada $t$
+\end{itemize}
+
+\section{Función Objetivo}
+
+\begin{equation}
+\max Z = \sum_{i \in \mathcal{I}} \sum_{t \in \mathcal{T}} GEN_{i,t} - \sum_{d \in \mathcal{D}} \sum_{j \in \mathcal{J}} \sum_{w \in \mathcal{W}} \sum_{t \in \mathcal{T}} \eta_{d,j,w,t} \cdot \psi - \sum_{w \in \mathcal{W}} \sum_{t \in \mathcal{T}} (\beta_{w,t} + \delta_{w,t}) \cdot \nu - \sum_{d \in \mathcal{D}} \sum_{j \in \mathcal{J}} \sum_{w \in \mathcal{W}} \sum_{t \in \mathcal{T}} \text{def}_{d,j,w,t}
+\end{equation}
+
+\textbf{Componentes:}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Maximizar energía generada}: $\sum_{i,t} GEN_{i,t}$
+    \item \textbf{Penalizar incumplimiento de convenio}: $-\sum_{d,j,w,t} \eta_{d,j,w,t} \cdot \psi$
+    \item \textbf{Penalizar violación de umbrales}: $-\sum_{w,t} (\beta_{w,t} + \delta_{w,t}) \cdot \nu$
+    \item \textbf{Minimizar déficit de riego}: $-\sum_{d,j,w,t} \text{def}_{d,j,w,t}$
+\end{itemize}
+
+\section{Restricciones}
+
+\subsection{1. Linealización de Filtraciones}
+
+\textbf{Definición de filtración total:}
+\begin{equation}
+qf_{w,t} = f_1 + \sum_{k=1}^{K-1} \Delta f_{k,w,t}, \quad \forall w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\textbf{Límites de incrementos:}
+\begin{align}
+\Delta f_{k,w,t} &\leq (f_{k+1} - f_k) \cdot \phi_{k,w,t}, \quad \forall k \in \mathcal{K}\setminus\{K\}, w \in \mathcal{W}, t \in \mathcal{T} \\
+\Delta f_{k,w,t} &\geq 0, \quad \forall k \in \mathcal{K}\setminus\{K\}, w \in \mathcal{W}, t \in \mathcal{T}
+\end{align}
+
+\textbf{Relación con volumen del lago:}
+\begin{align}
+V_{w,t} &\geq v_1 + \sum_{k=1}^{k'} (v_{k+1} - v_k) \cdot \phi_{k,w,t}, \quad \forall k' \in \mathcal{K}\setminus\{K\}, w \in \mathcal{W}, t \in \mathcal{T} \\
+V_{w,t} &< v_1 + \sum_{k=1}^{k'} (v_{k+1} - v_k) + (v_{k'+1} - v_{k'}) \cdot \phi_{k',w,t}, \quad \forall k' \in \mathcal{K}\setminus\{K\}, w \in \mathcal{W}, t \in \mathcal{T}
+\end{align}
+
+\subsection{2. Volúmenes Disponibles al 30 de Noviembre}
+
+\textbf{Definición del volumen al 30 Nov:}
+\begin{equation}
+V_{30\text{Nov},1} = V_{30\text{Nov},1}^{\text{param}}, \quad V_{30\text{Nov},t} = V_{48,t-1}, \quad \forall t \in \mathcal{T}\setminus\{1\}
+\end{equation}
+
+\textbf{Linealización de volúmenes iniciales:}
+\begin{align}
+V_{30\text{Nov},t} &= v_1 + \sum_{k=1}^{K-1} \Delta v_{30,k,t}, \quad \forall t \in \mathcal{T} \\
+\Delta v_{30,k,t} &\leq (v_{k+1} - v_k) \cdot \phi_{30,k,t}, \quad \forall k \in \mathcal{K}\setminus\{K\}, t \in \mathcal{T} \\
+\Delta v_{30,k,t} &\geq (v_{k+1} - v_k) \cdot \phi_{30,k+1,t}, \quad \forall k \in \mathcal{K}\setminus\{K\}, t \in \mathcal{T}
+\end{align}
+
+\textbf{Volúmenes iniciales de riego y generación:}
+\begin{align}
+VR_{0,t} &= vr_1 + \sum_{k=1}^{K-1} \frac{vr_{k+1} - vr_k}{v_{k+1} - v_k} \cdot \Delta v_{30,k,t}, \quad \forall t \in \mathcal{T} \\
+VG_{0,t} &= vg_1 + \sum_{k=1}^{K-1} \frac{vg_{k+1} - vg_k}{v_{k+1} - v_k} \cdot \Delta v_{30,k,t}, \quad \forall t \in \mathcal{T}
+\end{align}
+
+\subsection{3. Generación en El Toro}
+
+\begin{equation}
+qg_{1,w,t} = qer_{w,t} + qeg_{w,t}, \quad \forall w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\subsection{3b. Balance de Volúmenes por Uso}
+
+\textbf{Primera semana:}
+\begin{align}
+VR_{1,t} &= VR_{0,t} - qer_{1,t} \cdot \frac{FS_1}{10^6}, \quad \forall t \in \mathcal{T} \\
+VG_{1,t} &= VG_{0,t} - qeg_{1,t} \cdot \frac{FS_1}{10^6}, \quad \forall t \in \mathcal{T}
+\end{align}
+
+\textbf{Semanas siguientes:}
+\begin{align}
+VR_{w,t} &= VR_{w-1,t} - qer_{w,t} \cdot \frac{FS_w}{10^6}, \quad \forall w \in \mathcal{W}\setminus\{1\}, t \in \mathcal{T} \\
+VG_{w,t} &= VG_{w-1,t} - qeg_{w,t} \cdot \frac{FS_w}{10^6}, \quad \forall w \in \mathcal{W}\setminus\{1\}, t \in \mathcal{T}
+\end{align}
+
+\textbf{No negatividad al final de temporada:}
+\begin{align}
+VR_{48,t} &\geq 0, \quad \forall t \in \mathcal{T} \\
+VG_{48,t} &\geq 0, \quad \forall t \in \mathcal{T}
+\end{align}
+
+\subsection{4. Balance de Volumen del Lago}
+
+\textbf{Primera semana de primera temporada:}
+\begin{equation}
+V_{1,1} \leq V_0 + \left(QA_{1,1,1} - qg_{1,1,1} - qf_{1,1}\right) \cdot \frac{FS_1}{10^6}
+\end{equation}
+
+\textbf{Primera semana de otras temporadas:}
+\begin{equation}
+V_{1,t} \leq V_{48,t-1} + \left(QA_{1,1,t} - qg_{1,1,t} - qf_{1,t}\right) \cdot \frac{FS_1}{10^6}, \quad \forall t \in \mathcal{T}\setminus\{1\}
+\end{equation}
+
+\textbf{Semanas siguientes:}
+\begin{equation}
+V_{w,t} \leq V_{w-1,t} + \left(QA_{1,w,t} - qg_{1,w,t} - qf_{w,t}\right) \cdot \frac{FS_w}{10^6}, \quad \forall w \in \mathcal{W}\setminus\{1\}, t \in \mathcal{T}
+\end{equation}
+
+\subsection{5. Límites de Volumen del Lago}
+
+\begin{align}
+V_{w,t} &\geq V_{\text{MIN}} - M \cdot \beta_{w,t}, \quad \forall w \in \mathcal{W}, t \in \mathcal{T} \\
+V_{w,t} &\leq V_{\text{MAX}} + M \cdot \delta_{w,t}, \quad \forall w \in \mathcal{W}, t \in \mathcal{T}
+\end{align}
+
+\subsection{6. Inclusión de Filtraciones en Laja}
+
+\begin{equation}
+qf_{w,t} \leq QA_{6,w,t}, \quad \forall w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\subsection{7. Balance de Flujo en Redes}
+
+Para cada nodo de la red, se cumple el balance de masa:
+\begin{equation}
+\sum_{\text{entradas}} q_{\text{in}} = \sum_{\text{salidas}} q_{\text{out}}, \quad \forall \text{nodo}, w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+donde $q$ puede ser $qg$, $qv$, $qa$, $qf$, o sumas de caudales provistos $qp$.
+
+\textbf{Restricción especial RieSaltos:}
+\begin{equation}
+qp_{3,3,w,t} = qv_{11,w,t}, \quad \forall w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\subsection{8. Cumplimiento de Demandas de Riego}
+
+\begin{equation}
+QD_{d,j,w} - qp_{d,j,w,t} = \text{def}_{d,j,w,t} - \text{sup}_{d,j,w,t}, \quad \forall d \in \mathcal{D}, j \in \mathcal{J}, w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\subsection{9. Activación de Penalizaciones por Convenio}
+
+\textbf{Primeros regantes en RieZaCo y RieTucapel:}
+\begin{align}
+\text{def}_{1,1,w,t} &\leq M \cdot (\eta_{1,1,w,t} + \alpha_{w,t}), \quad \forall w \in \mathcal{W}, t \in \mathcal{T} \\
+\text{def}_{1,2,w,t} &\leq M \cdot (\eta_{1,2,w,t} + \alpha_{w,t}), \quad \forall w \in \mathcal{W}, t \in \mathcal{T}
+\end{align}
+
+\textbf{Segundos regantes y emergencia:}
+\begin{equation}
+\text{def}_{d,j,w,t} \leq M \cdot \eta_{d,j,w,t}, \quad \forall d \in \{2,3\}, j \in \{1,2\}, w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\textbf{Canal RieSaltos:}
+\begin{equation}
+\text{def}_{d,3,w,t} \leq M \cdot \eta_{d,3,w,t}, \quad \forall d \in \mathcal{D}, w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\subsection{10. Capacidades de Centrales}
+
+\begin{equation}
+qg_{i,w,t} \leq \gamma_i, \quad \forall i \in \mathcal{I}, w \in \mathcal{W}, t \in \mathcal{T}
+\end{equation}
+
+\subsection{11. Definición de Energía Generada}
+
+\begin{equation}
+GEN_{i,t} = \sum_{w \in \mathcal{W}} qg_{i,w,t} \cdot \rho_i \cdot \frac{FS_w}{3600 \times 1000}, \quad \forall i \in \mathcal{I}, t \in \mathcal{T}
+\end{equation}
+
+\section{Topología de la Red}
+
+El sistema cuenta con 15 nodos principales:
+
+\begin{enumerate}
+    \item \textbf{Lago Laja}: Embalse principal
+    \item \textbf{El Toro}: Primera central, recibe $qer + qeg$
+    \item \textbf{Abanico}: Recibe filtraciones del lago y afluente $QA_2$
+    \item \textbf{Antuco}: Punto de convergencia
+    \item \textbf{RieZaCo}: Distribución a primeros regantes
+    \item \textbf{Canecol}: Central con afluente $QA_5$
+    \item \textbf{CanRucue}: Central en río Laja
+    \item \textbf{CLajRucue}: Canal Laja Rucue
+    \item \textbf{Rucue}: Convergencia
+    \item \textbf{Quilleco}: Central
+    \item \textbf{Tucapel}: Recibe afluente $QA_4$
+    \item \textbf{CanalLaja}: Distribución
+    \item \textbf{Laja1}: Recibe afluente $QA_6$
+    \item \textbf{ElDiuto}: Central
+    \item \textbf{RieTucapel}: Distribución a segundos regantes
+\end{enumerate}
+
+\section{Notas de Implementación}
+
+\begin{itemize}
+    \item El modelo utiliza Gurobi 12.0.3 como solver
+    \item Variables: 33,390 totales (25,248 continuas, 8,142 binarias)
+    \item Restricciones: 29,737
+    \item Tiempo límite: 60 segundos
+    \item Gap de optimalidad: 2\%
+    \item El canal Abanico ($j=4$) es una variable de medición que no representa extracción física del sistema
+    \item La variable $\alpha$ controla la decisión entre usar canal Abanico o Tucapel para primeros regantes
+\end{itemize}
+
+\end{document}
